@@ -1,0 +1,7 @@
+{
+  "Actions": [
+    {"UUID":"cafe.nero.neronook.run","Name":"Run Action","Icon":"images/action","Tooltip":"Run a permitted NeroNook action and show its outcome.","Controllers":["Keypad"],"States":[{"Image":"images/key","TitleAlignment":"middle","FontSize":"12"}],"PropertyInspectorPath":"inspector.html","SupportedInMultiActions":false},
+    {"UUID":"cafe.nero.neronook.status","Name":"Show Status","Icon":"images/action","Tooltip":"Show a permitted live state value from NeroNook.","Controllers":["Keypad"],"States":[{"Image":"images/key","TitleAlignment":"middle","FontSize":"12"}],"PropertyInspectorPath":"inspector.html","SupportedInMultiActions":false}
+  ],
+  "Author":"NeroNook","CodePath":"bin/StreamDeckPlugin","CodePathMac":"bin/StreamDeckPlugin","Description":"Run NeroNook actions and display live module status using the shared plugin SDK.","Name":"NeroNook","Icon":"images/plugin","Category":"NeroNook","CategoryIcon":"images/action","URL":"https://docs.elgato.com/streamdeck/sdk/","Version":"0.1.0.0","UUID":"cafe.nero.neronook","SDKVersion":2,"Software":{"MinimumVersion":"6.6"},"OS":[{"Platform":"mac","MinimumVersion":"14.0"}]
+}
