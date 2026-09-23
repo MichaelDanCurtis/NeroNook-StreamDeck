@@ -1,1 +1,16 @@
-{"id":"cafe.nero.plugin.streamdeck","name":"Stream Deck","version":"0.1.0","apiVersion":1,"summary":"Connect Elgato Stream Deck keys to permitted NeroNook actions and live status.","capabilities":["Communicates with its Elgato companion through a private same-user local socket","Discovers and invokes actions granted through the shared plugin SDK","Displays subscribed state and action outcomes; never owns Stream Deck hardware"]}
+{
+  "id": "cafe.nero.plugin.streamdeck",
+  "name": "Stream Deck",
+  "version": "0.1.0",
+  "apiVersion": 1,
+  "summary": "Connect Elgato Stream Deck keys to permitted NeroNook actions and live status.",
+  "capabilities": [
+    "Communicates with its Elgato companion through a private same-user local socket",
+    "Discovers and invokes actions granted through the shared plugin SDK",
+    "Displays subscribed state and action outcomes; never owns Stream Deck hardware"
+  ],
+  "icon": {
+    "symbol": "square.grid.3x3.fill",
+    "color": "B59BFF"
+  }
+}
