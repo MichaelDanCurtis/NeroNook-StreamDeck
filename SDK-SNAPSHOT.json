@@ -1,0 +1,21 @@
+{
+  "hostVersion": "0.23.0",
+  "source": "NeroNook public SDK",
+  "files": {
+    "ModulePackage.swift": "10eb0afad8eb1e2681e0dc708f8e3c3f271d6c5bf5ac80dddc5b4a151be99323",
+    "PluginActions.swift": "c2024e9751df97eb3d4cc34392ddd4362e2cd5882480d40d43d990986953494e",
+    "PluginAgenda.swift": "98812ab547e75a66705dff7729229b595d3d26d0dbdf035d8bc598a57e4e2b18",
+    "PluginApplicationChannel.swift": "7191e1cae30b6be4ea05b2e79a88cd4ba6cb71b1cf2cd1d5001f20a0eeaf4006",
+    "PluginCollection.swift": "adac753c6a4a6d84f55511325caebf462d85865d7d6a07293ab26435f9a8ae2a",
+    "PluginCollectionView.swift": "75687c56d3082892471c8347ebaae6e4981402bed116ad7e2fc97df16310bdeb",
+    "PluginCustomView.swift": "fea714c0a6bdcf0e9b7bc6d4b978354d8cb1b9e73b22b99b155d886d3a8f3249",
+    "PluginDiagram.swift": "bd2ca23c94eb0939f84abfd2e7398c68257631e282af5491e458dffd1cd1a42f",
+    "PluginForm.swift": "b2325c59245d08fb444d52a09d88d8542ccd580cff6569df7727e49ff29e4da5",
+    "PluginIcon.swift": "8971cf48f7c0a9d3180d4460855698ff05b10448ebc143f21cf0194e3764ada8",
+    "PluginPresentation.swift": "0fcc7a73c1393050d71a136d230500d65a535be48a11d026b507c564cebb383f",
+    "PluginProtocol.swift": "a38ad704abdefc1dd9b4b193fe793119015f59054cfb362b676b9ec787204514",
+    "PluginStorage.swift": "cdb4596dc8c6de0b932497d61098e90a5d953f7ab8078d2e93cfe67e19d91b1b",
+    "PluginWebSurface.swift": "d1e688fe6e0105c0d54e26b9a7c9175a7a6c2bded13704efe13752ccc4dce6d0",
+    "PluginWindows.swift": "d62e1522f026ed0ad083fab83a33e7647bffd3bde1c40f3c56d17be50cf982da"
+  }
+}

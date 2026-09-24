@@ -7,7 +7,11 @@ public struct PluginManifest: Codable, Equatable, Sendable, Identifiable {
     public var apiVersion: Int
     public var summary: String
     public var capabilities: [String]
+    public var launchMode: String? = nil
+    public var icon: PluginIcon? = nil
     public func validate() throws {
+        try icon?.validate()
+        guard launchMode == nil || launchMode == "application" else { throw ModuleProblem("Unsupported plugin launch mode.") }
         guard apiVersion == 1 else { throw ModuleProblem("This plugin requires a different plugin interface version.") }
         guard id.range(of: #"^[a-z][a-z0-9]*(\.[a-z][a-z0-9-]*)+$"#, options: .regularExpression) != nil,
               id.count <= 100, !name.isEmpty, name.count <= 80, summary.count <= 500,
@@ -29,7 +33,8 @@ public struct PluginAction: Codable, Equatable, Sendable, Identifiable {
     public var label: String
     public var enabled: Bool
     public var symbol: String?
-    public init(_ id: String, _ label: String, enabled: Bool = true, symbol: String? = nil) { self.id = id; self.label = label; self.enabled = enabled; self.symbol = symbol }
+    public var confirmation: String?
+    public init(_ id: String, _ label: String, enabled: Bool = true, symbol: String? = nil, confirmation: String? = nil) { self.id = id; self.label = label; self.enabled = enabled; self.symbol = symbol; self.confirmation = confirmation }
 }
 public struct PluginSection: Codable, Equatable, Sendable {
     public var title: String
@@ -37,15 +42,33 @@ public struct PluginSection: Codable, Equatable, Sendable {
     public var imagePNG: Data?
     public init(_ title: String, _ detail: String, imagePNG: Data? = nil) { self.title = title; self.detail = detail; self.imagePNG = imagePNG }
 }
-/// A plugin-defined tab for the shared dashboard stage. Content is display-only.
+/// Bounded native cards. Action IDs are opaque and interpreted only by the plugin.
+public struct PluginControlCard: Codable, Equatable, Sendable, Identifiable {
+    public var id: String
+    public var title: String
+    public var subtitle: String
+    public var value: String
+    public var detail: String
+    public var symbol: String?
+    public var highlighted: Bool
+    public var actions: [PluginAction]
+    public init(_ id: String, title: String, subtitle: String = "", value: String = "", detail: String = "", symbol: String? = nil, highlighted: Bool = false, actions: [PluginAction] = []) {
+        self.id = id; self.title = title; self.subtitle = subtitle; self.value = value; self.detail = detail; self.symbol = symbol; self.highlighted = highlighted; self.actions = actions
+    }
+}
+/// A plugin-defined tab for the shared dashboard stage.
 public struct PluginPanel: Codable, Equatable, Sendable, Identifiable {
     public var id: String
     public var title: String
     public var usesMedia: Bool
     public var sections: [PluginSection]
     public var diagrams: [PluginDiagram]?
-    public init(_ id: String, _ title: String, usesMedia: Bool = false, sections: [PluginSection] = [], diagrams: [PluginDiagram]? = nil) {
-        self.id = id; self.title = title; self.usesMedia = usesMedia; self.sections = sections; self.diagrams = diagrams
+    public var cards: [PluginControlCard]?
+    public var forms: [PluginForm]?
+    public var collection: PluginCollection?
+    public var customView: PluginCustomView?
+    public init(_ id: String, _ title: String, usesMedia: Bool = false, sections: [PluginSection] = [], diagrams: [PluginDiagram]? = nil, cards: [PluginControlCard]? = nil, forms: [PluginForm]? = nil, collection: PluginCollection? = nil, customView: PluginCustomView? = nil) {
+        self.id = id; self.title = title; self.usesMedia = usesMedia; self.sections = sections; self.diagrams = diagrams; self.cards = cards; self.forms = forms; self.collection = collection; self.customView = customView
     }
 }
 public struct PluginMedia: Codable, Equatable, Sendable {
@@ -74,7 +97,44 @@ public struct PluginSnapshot: Codable, Equatable, Sendable {
         self.title = title; self.status = status; self.activity = activity; self.progress = progress; self.fields = fields; self.actions = actions
         self.metrics = metrics; self.sections = sections; self.media = media; self.badge = badge; self.panels = panels; self.iconPNG = iconPNG
     }
+    public var displayActions: [PluginAction] { actions + (panels ?? []).flatMap { ($0.cards ?? []).flatMap(\.actions) + ($0.collection?.displayActions ?? []) } }
+    public func enabledDisplayAction(_ id: String) -> PluginAction? { displayActions.first { $0.id == id && $0.enabled } }
     public func validate() throws {
+        var known: [String: PluginAction] = [:]
+        for action in displayActions {
+            guard ModulePackage.validKey(action.id), !action.label.isEmpty, action.label.count <= 80,
+                  (action.symbol?.count ?? 0) <= 80, (action.confirmation?.count ?? 0) <= 400,
+                  known[action.id].map({ $0 == action }) ?? true else { throw ModuleProblem("Invalid or conflicting card action.") }
+            known[action.id] = action
+        }
+        let allCards = (panels ?? []).flatMap { $0.cards ?? [] }
+        guard allCards.count <= 192 else { throw ModuleProblem("Too many control cards.") }
+        guard (panels ?? []).reduce(0, { $0 + ($1.collection?.items.count ?? 0) }) <= 192 else { throw ModuleProblem("Too many collection items.") }
+        for panel in panels ?? [] {
+            if let customView = panel.customView {
+                guard panel.cards == nil, panel.forms == nil, panel.diagrams == nil, panel.collection == nil, !panel.usesMedia else { throw ModuleProblem("Conflicting custom view panel.") }
+                try customView.validate()
+            }
+            if let collection = panel.collection {
+                guard panel.cards == nil, panel.forms == nil, panel.diagrams == nil, !panel.usesMedia else { throw ModuleProblem("Conflicting collection panel.") }
+                try collection.validate()
+            }
+            if let forms = panel.forms {
+                guard (1...4).contains(forms.count), panel.cards == nil, panel.diagrams == nil, !panel.usesMedia,
+                      Set(forms.map(\.id)).count == forms.count else { throw ModuleProblem("Invalid form panel.") }
+                for form in forms { try form.validate() }
+            }
+            if let cards = panel.cards {
+                guard cards.count <= 96, panel.diagrams == nil, !panel.usesMedia,
+                      Set(cards.map(\.id)).count == cards.count else { throw ModuleProblem("Invalid control card panel.") }
+                for card in cards {
+                    guard ModulePackage.validKey(card.id), !card.title.isEmpty, card.title.count <= 80,
+                          card.subtitle.count <= 100, card.value.count <= 100, card.detail.count <= 300,
+                          (card.symbol?.count ?? 0) <= 80, card.actions.count <= 3,
+                          Set(card.actions.map(\.id)).count == card.actions.count else { throw ModuleProblem("Invalid control card.") }
+                }
+            }
+        }
         let artwork = ([iconPNG] + (sections ?? []).map(\.imagePNG) + (panels ?? []).flatMap { $0.sections.map(\.imagePNG) }).compactMap { $0 }
         guard artwork.allSatisfy({ !$0.isEmpty && $0.count <= 8192 }), artwork.reduce(0, { $0 + $1.count }) <= 81920 else { throw ModuleProblem("Plugin artwork exceeded its limit.") }
         if let panels {
@@ -111,8 +171,11 @@ public struct PluginMessage: Codable, Sendable {
     public var visible: Bool?
     public var frame: PluginFrame?
     public var bus: PluginBusMessage?
-    public init(type: String, pluginID: String, session: UUID, sequence: UInt64 = 0, action: String? = nil, snapshot: PluginSnapshot? = nil, features: [String]? = nil, visible: Bool? = nil, frame: PluginFrame? = nil, bus: PluginBusMessage? = nil) {
-        self.type = type; self.pluginID = pluginID; self.session = session; self.sequence = sequence; self.action = action; self.snapshot = snapshot; self.features = features; self.visible = visible; self.frame = frame; self.bus = bus
+    public var agenda: PluginAgenda?
+    public var agendaDate: Date?
+    public var viewEvent: PluginViewEvent?
+    public init(type: String, pluginID: String, session: UUID, sequence: UInt64 = 0, action: String? = nil, snapshot: PluginSnapshot? = nil, features: [String]? = nil, visible: Bool? = nil, frame: PluginFrame? = nil, bus: PluginBusMessage? = nil, agenda: PluginAgenda? = nil, agendaDate: Date? = nil, viewEvent: PluginViewEvent? = nil) {
+        self.type = type; self.pluginID = pluginID; self.session = session; self.sequence = sequence; self.action = action; self.snapshot = snapshot; self.features = features; self.visible = visible; self.frame = frame; self.bus = bus; self.agenda = agenda; self.agendaDate = agendaDate; self.viewEvent = viewEvent
     }
     public func encoded() throws -> Data {
         var data = try JSONEncoder().encode(self)
