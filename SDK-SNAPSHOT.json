@@ -17,7 +17,7 @@
     "Sources/NookPluginSDK/PluginForm.swift": "b2325c59245d08fb444d52a09d88d8542ccd580cff6569df7727e49ff29e4da5",
     "Sources/NookPluginSDK/PluginIcon.swift": "8971cf48f7c0a9d3180d4460855698ff05b10448ebc143f21cf0194e3764ada8",
     "Sources/NookPluginSDK/PluginInterfaceWeb.swift": "24f34f7dd7b5cc5ac6bc97ccf0cd0880b8b719b480610ca975e94c6786503d1d",
-    "Sources/NookPluginSDK/PluginPresenceMark.swift": "9f472a436bf94519631c5bae1b7eb7cc27ff9b42e6efc256e26f986f49aa70b6",
+    "Sources/NookPluginSDK/PluginPresenceMark.swift": "6d1b17722cb2e348d6617a3c80d3141702e70b240b6aed3f2c009e650c83ef08",
     "Sources/NookPluginSDK/PluginPresentation.swift": "0fcc7a73c1393050d71a136d230500d65a535be48a11d026b507c564cebb383f",
     "Sources/NookPluginSDK/PluginProtocol.swift": "feda8fa0bdec08ee0591f4bf61a9db3695b58fa7687d11cb6849eb6420aa29eb",
     "Sources/NookPluginSDK/PluginSettings.swift": "164031c4f07fdb3743b336c7b13756d116fd23b7eadfe910f9a5ca021d862e82",
@@ -103,7 +103,10 @@
     "Sources/NookPluginSDK/Resources/avatar-monoline-ember.usdz": "c33633ca31e151e869b5b0aed88db23b7ad0891d0841f4fbd69bfba52709e12c",
     "Sources/NookPluginSDK/Resources/avatar-monoline-nero.glb": "9611952609df37891453f2a54f25f1438ae75c1693d9fc5a5851cba50fdf29e6",
     "Sources/NookPluginSDK/Resources/avatar-monoline-nero.png": "d3ddb3091da66133adfe060306143bbdf49bcbb17afe9b32d4e296f73f019f7c",
-    "Sources/NookPluginSDK/Resources/avatar-monoline-nero.usdz": "398531ed55677989c3c54e4b843e7b0a4142bdd7a5de7ea44dcc906e323b8ac6"
+    "Sources/NookPluginSDK/Resources/avatar-monoline-nero.usdz": "398531ed55677989c3c54e4b843e7b0a4142bdd7a5de7ea44dcc906e323b8ac6",
+    "Sources/NookPluginSDK/PluginSeasonalComposition.swift": "43bd489f4e091b61c23c83d954fdf54fe325a88591f40d8f45ee632b3b8686d4",
+    "Sources/NookPluginSDK/PluginSeasonalNativeArt.swift": "fbe41e880285df596aa5912e17945b77b9bad90291fb73a7487cc0d2cacd9053",
+    "Sources/NookPluginSDK/PluginSeasonalSurface.swift": "31d4701d112d886da83153bea393d979f78dba6f31acba6d0e01824602ec5aba"
   },
   "extensions": {
     "actions-long-running-v1": "0.27.0",
