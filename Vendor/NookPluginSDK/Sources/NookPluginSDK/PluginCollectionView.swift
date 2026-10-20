@@ -2,6 +2,7 @@ import SwiftUI
 
 /// Native semantic surfaces shared by independent providers. No service APIs live here.
 public struct PluginCollectionView: View {
+    @Environment(\.pluginAppearance) private var appearance
     public init(collection: PluginCollection, invoke: @escaping (String) -> Void) { self.collection = collection; self.invoke = invoke }
     let collection: PluginCollection
     let invoke: (String) -> Void
@@ -43,7 +44,7 @@ public struct PluginCollectionView: View {
                                     default: fileRow(item)
                                     }
                                 }.buttonStyle(.plain)
-                                    .background(selection == item.id ? Color.accentColor.opacity(0.15) : Color.clear)
+                                    .background(selection == item.id ? Color(pluginHex:appearance.palette.accent).opacity(0.15) : Color.clear)
                                     .accessibilityLabel(item.title + ", " + item.subtitle)
                                 Divider().opacity(0.35)
                             }
@@ -62,7 +63,7 @@ public struct PluginCollectionView: View {
                 }.padding(20).frame(maxWidth: 360).background(.regularMaterial, in: RoundedRectangle(cornerRadius: 12))
             }
         }
-        .onChange(of: collection.displayActions) { _, actions in if let reviewing, !actions.contains(reviewing) { self.reviewing = nil } }
+        .onChange(of: collection.displayActions) { actions in if let reviewing, !actions.contains(reviewing) { self.reviewing = nil } }
     }
     private var toolbar: some View {
         HStack(spacing: 10) {
@@ -80,7 +81,7 @@ public struct PluginCollectionView: View {
     }
     private func inboxRow(_ item: PluginCollectionItem) -> some View {
         HStack(spacing: 10) {
-            Circle().fill(item.unread ? Color.blue : .clear).frame(width: 6, height: 6)
+            Circle().fill(item.unread ? Color(pluginHex:appearance.palette.accent) : .clear).frame(width: 6, height: 6)
             Text(item.subtitle).font(.callout.weight(item.unread ? .semibold : .regular)).lineLimit(1).frame(width: 150, alignment: .leading)
             VStack(alignment: .leading, spacing: 4) {
                 Text(item.title).font(.callout.weight(item.unread ? .semibold : .regular)).lineLimit(1)
@@ -99,7 +100,7 @@ public struct PluginCollectionView: View {
             }.frame(maxWidth: .infinity, alignment: .leading)
             if let due = item.date {
                 Text(due.formatted(date: .abbreviated, time: .omitted)).font(.caption).foregroundStyle(due < calendar.startOfDay(for: Date()) ? Color.orange : .secondary)
-                    .padding(.horizontal, 8).padding(.vertical, 4).background(.white.opacity(0.05), in: Capsule())
+                    .padding(.horizontal, 8).padding(.vertical, 4).background(Color.primary.opacity(0.05), in: Capsule())
             } else { Text("No due date").font(.caption).foregroundStyle(.tertiary) }
         }.padding(12).contentShape(Rectangle())
     }
@@ -123,7 +124,7 @@ public struct PluginCollectionView: View {
                 Image(systemName: item.symbol ?? "doc").font(.system(size: 32)).foregroundStyle(fileColor(item)).frame(height: 45)
                 Text(item.title).font(.callout).lineLimit(2).frame(height: 34)
                 Text(item.category).font(.caption2).foregroundStyle(.secondary).lineLimit(1)
-            }.padding(12).frame(maxWidth: .infinity).background(selection == item.id ? Color.accentColor.opacity(0.15) : .white.opacity(0.04), in: RoundedRectangle(cornerRadius: 8))
+            }.padding(12).frame(maxWidth: .infinity).background(selection == item.id ? Color(pluginHex:appearance.palette.accent).opacity(0.15) : Color.primary.opacity(0.04), in: RoundedRectangle(cornerRadius: 16))
         }.buttonStyle(.plain)
     }
     private func fileColor(_ item: PluginCollectionItem) -> Color {
@@ -136,7 +137,7 @@ public struct PluginCollectionView: View {
                 Text(item.detail.isEmpty ? item.subtitle : item.detail).font(.caption).foregroundStyle(.secondary).lineLimit(2)
             }.frame(maxWidth: .infinity, alignment: .leading)
             if let action = item.action { actionButton(action) }
-        }.padding(12).background(.white.opacity(0.06), in: RoundedRectangle(cornerRadius: 8))
+        }.padding(12).background(Color.primary.opacity(0.06), in: RoundedRectangle(cornerRadius: 16))
     }
     private var footer: some View {
         HStack {
@@ -170,10 +171,10 @@ public struct PluginCollectionView: View {
                             Button { perform(day.action) } label: {
                                 VStack(spacing: 4) {
                                     Text("\(calendar.component(.day, from: day.date))").font(.callout.weight(selected || calendar.isDateInToday(day.date) ? .bold : .regular))
-                                    Circle().fill(calendar.isDateInToday(day.date) ? Color.accentColor : .clear).frame(width: 4, height: 4)
+                                    Circle().fill(calendar.isDateInToday(day.date) ? Color(pluginHex:appearance.palette.accent) : .clear).frame(width: 4, height: 4)
                                 }.frame(maxWidth: .infinity).frame(height: max(23, min(46, (geometry.size.height - 90) / 6)))
-                                    .foregroundStyle(selected ? Color.white : inMonth ? .primary : .secondary)
-                                    .background(selected ? Color.accentColor : .white.opacity(inMonth ? 0.035 : 0), in: RoundedRectangle(cornerRadius: 7))
+                                    .foregroundStyle(selected ? Color(pluginHex:appearance.palette.onAccent) : inMonth ? .primary : .secondary)
+                                    .background(selected ? Color(pluginHex:appearance.palette.accent) : Color.primary.opacity(inMonth ? 0.035 : 0), in: RoundedRectangle(cornerRadius: 11))
                             }.buttonStyle(.plain).disabled(!day.action.enabled).accessibilityLabel(day.date.formatted(date: .complete, time: .omitted)).accessibilityAddTraits(selected ? .isSelected : [])
                         }
                     }
@@ -187,11 +188,11 @@ public struct PluginCollectionView: View {
                         LazyVStack(alignment: .leading, spacing: 12) {
                             ForEach(collection.items) { item in
                                 VStack(alignment: .leading, spacing: 5) {
-                                    Text(item.category).font(.caption.weight(.semibold)).foregroundStyle(.blue)
+                                    Text(item.category).font(.caption.weight(.semibold)).foregroundStyle(Color(pluginHex:appearance.palette.accent))
                                     Text(item.title).font(.callout.weight(.medium))
                                     Text(item.subtitle).font(.caption).foregroundStyle(.secondary)
                                     if let action = item.action { actionButton(action) }
-                                }.padding(.leading, 10).frame(maxWidth: .infinity, alignment: .leading).overlay(alignment: .leading) { RoundedRectangle(cornerRadius: 2).fill(.blue).frame(width: 3) }
+                                }.padding(.leading, 10).frame(maxWidth: .infinity, alignment: .leading).overlay(alignment: .leading) { RoundedRectangle(cornerRadius: 2).fill(Color(pluginHex:appearance.palette.accent)).frame(width: 3) }
                             }
                         }
                     }

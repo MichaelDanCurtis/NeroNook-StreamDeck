@@ -17,6 +17,25 @@ public struct PluginDiagram: Codable, Equatable, Sendable, Identifiable {
         for element in elements { try element.validate(width: width, height: height) }
     }
 }
+/// Opt-in chrome colors. Literal fallbacks stay in the payload for older hosts.
+/// Do not use these roles for photographic, filament or hardware asset colors.
+public enum PluginDiagramColorRole: String, Codable, Sendable {
+    case background, surface, elevated, text, secondary, accent, border, success, warning, error
+    public func hex(in palette: PluginThemePalette) -> String {
+        switch self {
+        case .background: palette.background
+        case .surface: palette.surface
+        case .elevated: palette.elevated
+        case .text: palette.text
+        case .secondary: palette.secondary
+        case .accent: palette.accent
+        case .border: palette.border
+        case .success: palette.success
+        case .warning: palette.warning
+        case .error: palette.error
+        }
+    }
+}
 public struct PluginDiagramElement: Codable, Equatable, Sendable {
     public enum Kind: String, Codable, Sendable { case box, ellipse, line, text }
     public var kind: Kind
@@ -26,12 +45,14 @@ public struct PluginDiagramElement: Codable, Equatable, Sendable {
     public var h: Double
     public var fill: String?
     public var stroke: String?
+    public var fillRole: PluginDiagramColorRole?
+    public var strokeRole: PluginDiagramColorRole?
     public var text: String?
     public var font: Double?
     public var radius: Double?
     public var weight: Double?
-    public init(_ kind: Kind, x: Double, y: Double, w: Double, h: Double, fill: String? = nil, stroke: String? = nil, text: String? = nil, font: Double? = nil, radius: Double? = nil, weight: Double? = nil) {
-        self.kind = kind; self.x = x; self.y = y; self.w = w; self.h = h; self.fill = fill; self.stroke = stroke; self.text = text; self.font = font; self.radius = radius; self.weight = weight
+    public init(_ kind: Kind, x: Double, y: Double, w: Double, h: Double, fill: String? = nil, stroke: String? = nil, text: String? = nil, font: Double? = nil, radius: Double? = nil, weight: Double? = nil, fillRole: PluginDiagramColorRole? = nil, strokeRole: PluginDiagramColorRole? = nil) {
+        self.kind = kind; self.x = x; self.y = y; self.w = w; self.h = h; self.fill = fill; self.stroke = stroke; self.text = text; self.font = font; self.radius = radius; self.weight = weight; self.fillRole = fillRole; self.strokeRole = strokeRole
     }
     private func validateColor(_ value: String?) -> Bool {
         value == nil || value!.range(of: "^#[0-9A-Fa-f]{6}([0-9A-Fa-f]{2})?$", options: .regularExpression) != nil

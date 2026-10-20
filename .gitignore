@@ -1,3 +1,15 @@
 .build/
 build/
 .DS_Store
+
+reports/
+.serena/
+.swiftpm/
+node_modules/
+__pycache__/
+*.app/
+*.dSYM/
+*.xcarchive/
+.env
+.env.*
+!.env.example
