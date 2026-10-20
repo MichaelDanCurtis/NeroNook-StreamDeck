@@ -136,6 +136,8 @@ public struct PluginAppearanceContext: Codable, Equatable, Sendable {
     public var reduceTransparency = false
     public var reduceMotion = false
     public var increasedContrast = false
+    /// Transient presentation guard; never changes permissions or saved preferences.
+    public var avatarReactionsSuppressed: Bool? = nil
     public var avatars: PluginAvatarSelection?
     public var seasonalScene: PluginSeasonalScene?
     /// Expanded calendar travels in a new optional key. The legacy seasonalScene

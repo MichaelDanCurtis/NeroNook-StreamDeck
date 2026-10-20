@@ -42,6 +42,7 @@ public struct PluginWebSurface: NSViewRepresentable {
         configuration.userContentController.addScriptMessageHandler(context.coordinator, contentWorld: .page, name: "neroView")
         configuration.userContentController.addScriptMessageHandler(context.coordinator, contentWorld: .page, name: "neroAvatarPresence")
         configuration.userContentController.addScriptMessageHandler(context.coordinator, contentWorld: .page, name: "neroAvatarModel")
+        configuration.userContentController.addScriptMessageHandler(context.coordinator, contentWorld: .page, name: "neroAvatarReaction")
         configuration.userContentController.addUserScript(.init(source: Self.bridge, injectionTime: .atDocumentStart, forMainFrameOnly: true))
         let web = PluginVisibleWebView(frame: .zero, configuration: configuration)
         web.visibilityChanged={ [weak coordinator=context.coordinator,weak web] visible in
@@ -100,7 +101,9 @@ public struct PluginWebSurface: NSViewRepresentable {
         private var pointerBusy=false, pointerPending=false
         private var pointerSample: PluginAvatarPointerSource.Sample?
         private var pointerEpoch=0
-        func stopPointer() { pointer.stop(); pointerEpoch += 1; pointerBusy=false; pointerPending=false; pointerSample=nil }
+        private let reactionAudioOwner=UUID()
+        private var reactionAt=Date.distantPast
+        func stopPointer() { PluginAvatarReactionAudio.shared.stop(owner:reactionAudioOwner); pointer.stop(); pointerEpoch += 1; pointerBusy=false; pointerPending=false; pointerSample=nil }
         private func trackPointer(_ web: WKWebView, enabled: Bool) {
             guard active, loaded else { return }
             if enabled && !owner.appearance.reduceMotion {
@@ -158,6 +161,7 @@ public struct PluginWebSurface: NSViewRepresentable {
         func updateAppearance(_ web: WKWebView) {
             guard loaded, active, lastAppearance != owner.appearance, let data = try? JSONEncoder().encode(owner.appearance), let value = try? JSONSerialization.jsonObject(with: data) else { return }
             lastAppearance=owner.appearance; appearanceSerial += 1
+            if owner.appearance.avatarReactionsSuppressed == true { PluginAvatarReactionAudio.shared.stop(owner:reactionAudioOwner) }
             if owner.appearance.reduceMotion { trackPointer(web,enabled:false) }
             let serial=appearanceSerial, document=appearanceDocument
             Task { @MainActor [weak self] in
@@ -244,6 +248,19 @@ public struct PluginWebSurface: NSViewRepresentable {
         }
         public func webView(_ webView: WKWebView, stop urlSchemeTask: WKURLSchemeTask) { resourceTasks.removeValue(forKey: ObjectIdentifier(urlSchemeTask))?.cancel() }
         public func userContentController(_ userContentController: WKUserContentController, didReceive message: WKScriptMessage, replyHandler: @escaping @MainActor (Any?, String?) -> Void) {
+            if message.name == "neroAvatarReaction" {
+                guard active,message.frameInfo.isMainFrame,
+                      let url=message.frameInfo.request.url,url.scheme==PluginViewResources.scheme,url.host=="surface",url.path=="/"+owner.definition.entry,
+                      url.query==nil,url.fragment==nil,url.user==nil,url.password==nil,url.port==nil,
+                      let body=message.body as? [String:Any],Set(body.keys)==Set(["kind","document"]),body["document"] as? String==appearanceDocument,
+                      let kind=body["kind"] as? String,["giggle","zoom","stop"].contains(kind) else { replyHandler(nil,"Character reaction unavailable.");return }
+                if kind=="stop" {PluginAvatarReactionAudio.shared.stop(owner:reactionAudioOwner);replyHandler(["stopped":true],nil);return}
+                guard let reaction=PluginAvatarReaction(rawValue:kind),owner.appearance.avatars?.characterReactions != false,owner.appearance.avatarReactionsSuppressed != true,!owner.appearance.reduceMotion,
+                      Date().timeIntervalSince(reactionAt)>=1 else {replyHandler(["duration":1.3],nil);return}
+                reactionAt=Date()
+                let duration=PluginAvatarReactionAudio.shared.play(reaction,owner:reactionAudioOwner,enabled:owner.appearance.avatars?.reactionSounds != false)
+                replyHandler(["duration":duration,"levels":PluginAvatarReactionCatalog.clips[kind]?.levels ?? [],"step":0.02],nil);return
+            }
             if message.name == "neroAvatarModel" {
                 do {
                     // Scripts can attach before didFinish. The exact main-frame

@@ -1,0 +1,3 @@
+
+# Generated renderer includes upstream GLSL string indentation.
+**/Resources/avatar-renderer.js -whitespace

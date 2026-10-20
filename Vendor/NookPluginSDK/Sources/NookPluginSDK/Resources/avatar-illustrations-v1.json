@@ -2,151 +2,151 @@
   {
     "id": "illustration.circuit",
     "name": "Circuit Glass",
-    "kind": "articulated2.5D",
+    "kind": "full3D",
     "animatedFace": true
   },
   {
     "id": "illustration.stardust",
     "name": "Stardust",
-    "kind": "articulated2.5D",
+    "kind": "full3D",
     "animatedFace": true
   },
   {
     "id": "illustration.origami",
     "name": "Origami",
-    "kind": "articulated2.5D",
+    "kind": "full3D",
     "animatedFace": true
   },
   {
     "id": "illustration.pixel",
     "name": "16-Bit Sprite",
-    "kind": "articulated2.5D",
+    "kind": "full3D",
     "animatedFace": true
   },
   {
     "id": "illustration.ceramic",
     "name": "Glazed Ceramic",
-    "kind": "articulated2.5D",
+    "kind": "full3D",
     "animatedFace": true
   },
   {
     "id": "illustration.liquid-glass",
     "name": "Liquid Glass",
-    "kind": "articulated2.5D",
+    "kind": "full3D",
     "animatedFace": true
   },
   {
     "id": "illustration.ink",
     "name": "Living Ink",
-    "kind": "articulated2.5D",
+    "kind": "full3D",
     "animatedFace": true
   },
   {
     "id": "illustration.plush",
     "name": "Pocket Plush",
-    "kind": "articulated2.5D",
+    "kind": "full3D",
     "animatedFace": true
   },
   {
     "id": "illustration.low-poly",
     "name": "Low-Poly Familiar",
-    "kind": "articulated2.5D",
+    "kind": "full3D",
     "animatedFace": true
   },
   {
     "id": "illustration.art-deco",
     "name": "Art Deco",
-    "kind": "articulated2.5D",
+    "kind": "full3D",
     "animatedFace": true
   },
   {
     "id": "illustration.wireframe",
     "name": "Wireframe",
-    "kind": "articulated2.5D",
+    "kind": "full3D",
     "animatedFace": true
   },
   {
     "id": "illustration.paper-cut",
     "name": "Layered Paper",
-    "kind": "articulated2.5D",
+    "kind": "full3D",
     "animatedFace": true
   },
   {
     "id": "illustration.cel",
     "name": "Cel-Shaded Sprite",
-    "kind": "articulated2.5D",
+    "kind": "full3D",
     "animatedFace": true
   },
   {
     "id": "illustration.kinetic",
     "name": "Kinetic Metal",
-    "kind": "articulated2.5D",
+    "kind": "full3D",
     "animatedFace": true
   },
   {
     "id": "illustration.bauhaus",
     "name": "Bauhaus",
-    "kind": "articulated2.5D",
+    "kind": "full3D",
     "animatedFace": true
   },
   {
     "id": "illustration.micro-led",
     "name": "Micro-LED",
-    "kind": "articulated2.5D",
+    "kind": "full3D",
     "animatedFace": true
   },
   {
     "id": "illustration.watercolor",
     "name": "Watercolor Familiar",
-    "kind": "articulated2.5D",
+    "kind": "full3D",
     "animatedFace": true
   },
   {
     "id": "illustration.woodcut",
     "name": "Engraved Familiar",
-    "kind": "articulated2.5D",
+    "kind": "full3D",
     "animatedFace": true
   },
   {
     "id": "illustration.monoline",
     "name": "Light Drawing",
-    "kind": "articulated2.5D",
+    "kind": "full3D",
     "animatedFace": true
   },
   {
     "id": "illustration.clay",
     "name": "Soft Clay",
-    "kind": "articulated2.5D",
+    "kind": "full3D",
     "animatedFace": true
   },
   {
     "id": "illustration.neon-ronin",
     "name": "Neon Ronin",
-    "kind": "articulated2.5D",
+    "kind": "full3D",
     "animatedFace": true
   },
   {
     "id": "illustration.graffiti-ghost",
     "name": "Graffiti Ghost",
-    "kind": "articulated2.5D",
+    "kind": "full3D",
     "animatedFace": true
   },
   {
     "id": "illustration.chrome-drake",
     "name": "Chrome Drake",
-    "kind": "articulated2.5D",
+    "kind": "full3D",
     "animatedFace": true
   },
   {
     "id": "illustration.holo-phantom",
     "name": "Holo Phantom",
-    "kind": "articulated2.5D",
+    "kind": "full3D",
     "animatedFace": true
   },
   {
     "id": "illustration.street-runner",
     "name": "Street Runner",
-    "kind": "articulated2.5D",
+    "kind": "full3D",
     "animatedFace": true
   }
 ]

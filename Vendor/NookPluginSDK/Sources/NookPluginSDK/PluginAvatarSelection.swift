@@ -7,6 +7,8 @@ public struct PluginAvatarSelection: Codable, Equatable, Sendable {
     public var emberStyle: String = "elemental"
     public var neroPalette: String?
     public var emberPalette: String?
+    public var characterReactions: Bool?
+    public var reactionSounds: Bool?
     public init() {}
     public func style(_ persona: PluginAvatarPersona) -> String { persona == .nero ? neroStyle : emberStyle }
     public func palette(_ persona: PluginAvatarPersona, fallback: String) -> String { (persona == .nero ? neroPalette : emberPalette) ?? fallback }

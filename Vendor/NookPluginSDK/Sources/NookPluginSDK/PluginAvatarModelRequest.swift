@@ -42,8 +42,11 @@ struct PluginAvatarModelRequest {
         let binOffset = 20 + jsonCount, binCount = try word(binOffset)
         guard try word(binOffset+4) == 0x004E4942, binCount == data.count - binOffset - 8,
               var document = try JSONSerialization.jsonObject(with:data.subdata(in:20..<20+jsonCount)) as? [String:Any],
-              var images = document["images"] as? [[String:Any]], images.count <= 8,
+              let views0 = document["bufferViews"] as? [[String:Any]], views0.count <= 4096,
               let views = document["bufferViews"] as? [[String:Any]] else { throw invalid() }
+        var images = document["images"] as? [[String:Any]] ?? []
+        guard images.count <= 8 else { throw invalid() }
+        if images.isEmpty { return data }
         let bin = data.subdata(in:binOffset+8..<data.count)
         for index in images.indices {
             guard let viewIndex = images[index]["bufferView"] as? Int, views.indices.contains(viewIndex),
