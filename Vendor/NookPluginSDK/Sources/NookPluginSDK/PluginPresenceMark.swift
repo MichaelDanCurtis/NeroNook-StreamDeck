@@ -35,6 +35,12 @@ public struct PluginPresenceMark: View {
     public var body: some View {
         let motion = !reduceMotion && !appearance.reduceMotion
         ZStack {
+            if size >= 48 && !appearance.increasedContrast {
+                Ellipse().fill(RadialGradient(colors:[Color(pluginHex:appearance.palette.accent).opacity(appearance.scheme == .dark ? 0.18:0.10),.clear],center:.center,startRadius:0,endRadius:size*0.48))
+                    .frame(width:size*1.1,height:size*0.90).offset(y:size*0.04)
+                Ellipse().fill(Color.black.opacity(appearance.scheme == .dark ? 0.14:0.12))
+                    .frame(width:size*0.55,height:size*0.07).blur(radius:size*0.045).offset(y:size*0.40)
+            }
             PluginAvatarSceneBackdrop(scene: size >= 80 && !hasSeasonalSurface ? appearance.seasonalScene : nil)
             PluginAvatarSurface(persona: persona, theme: appearance.avatars?.palette(persona, fallback: appearance.theme.id) ?? appearance.theme.id, speech: speech, expression: expression ?? speech.expression ?? .init(), reducedMotion: !motion, opaque: appearance.reduceTransparency || appearance.increasedContrast, style: appearance.avatars?.style(persona) ?? "elemental")
         }

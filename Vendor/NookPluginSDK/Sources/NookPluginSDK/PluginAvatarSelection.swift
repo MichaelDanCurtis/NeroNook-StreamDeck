@@ -34,8 +34,8 @@ public enum PluginAvatarStyles {
         guard illustrations.contains(where: { $0.id == style && $0.animatedFace }), ["usdz", "glb"].contains(format) else { return nil }
         return Bundle.module.url(forResource: "avatar-" + style.dropFirst("illustration.".count) + "-" + persona.rawValue, withExtension: format)
     }
-    public static func illustration(style: String, persona: PluginAvatarPersona) -> URL? {
+    public static func illustration(style: String, persona: PluginAvatarPersona, body: Bool = false) -> URL? {
         guard illustrations.contains(where: { $0.id == style }) else { return nil }
-        return Bundle.module.url(forResource: "avatar-" + style.dropFirst("illustration.".count) + "-" + persona.rawValue, withExtension: "png")
+        return Bundle.module.url(forResource: "avatar-" + style.dropFirst("illustration.".count) + "-" + persona.rawValue + (body ? "-body" : ""), withExtension: "png")
     }
 }

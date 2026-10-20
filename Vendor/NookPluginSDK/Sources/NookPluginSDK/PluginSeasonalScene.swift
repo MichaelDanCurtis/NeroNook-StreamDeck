@@ -149,6 +149,15 @@ public struct PluginSeasonalScene: Codable, Equatable, Sendable {
 public struct PluginCelebrationLedger: Codable, Equatable, Sendable {
     public private(set) var keys: Set<String> = []
     public init() {}
+    private enum CodingKeys:String,CodingKey { case keys }
+    public init(from decoder:Decoder) throws {
+        let c=try decoder.container(keyedBy:CodingKeys.self)
+        keys=try c.decode(Set<String>.self,forKey:.keys)
+        guard keys.count <= 64,keys.allSatisfy({ key in
+            let parts=key.split(separator:".",omittingEmptySubsequences:false)
+            return parts.count == 2 && PluginHoliday(rawValue:String(parts[0])) != nil && Int(parts[1]).map { (1900...9999).contains($0) } == true
+        }) else { throw ModuleProblem("Invalid celebration receipts.") }
+    }
     public mutating func request(scene: PluginSeasonalScene, preferences: PluginSeasonalPreferences, explicitGesture: Bool, preview: Bool = false) -> Bool {
         guard (try? scene.validate()) != nil, preferences.automatic, preferences.holidays.contains(scene.holiday),
               (!scene.holiday.needsUSCalendar || preferences.locale == .unitedStates),

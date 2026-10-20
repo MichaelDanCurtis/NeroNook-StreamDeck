@@ -9,16 +9,18 @@ private typealias SeasonalRasterImage = UIImage
 #endif
 
 @MainActor private enum PluginSeasonalRasterImages {
-    static var cache:[String:SeasonalRasterImage]=[:]
+    static let cache:NSCache<NSString,SeasonalRasterImage> = {
+        let value=NSCache<NSString,SeasonalRasterImage>();value.countLimit=16;value.totalCostLimit=32*1024*1024;return value
+    }()
     static func image(_ name:String) -> Image? {
-        if let value=cache[name] { return view(value) }
+        if let value=cache.object(forKey:name as NSString) { return view(value) }
         guard let url=PluginSeasonalArtCatalog.url(path:"/__nook_sdk__/"+name) else { return nil }
         #if canImport(AppKit) && !targetEnvironment(macCatalyst)
         guard let value=NSImage(contentsOf:url) else { return nil }
         #else
         guard let value=UIImage(contentsOfFile:url.path) else { return nil }
         #endif
-        cache[name]=value;return view(value)
+        cache.setObject(value,forKey:name as NSString,cost:max(1,Int(value.size.width*value.size.height*4)));return view(value)
     }
     static func view(_ image:SeasonalRasterImage) -> Image {
         #if canImport(AppKit) && !targetEnvironment(macCatalyst)
@@ -118,16 +120,24 @@ private struct PluginSeasonalRasterOverlay:View {
                         context.fill(Path(ellipseIn:CGRect(x:point.x-radius*3,y:point.y-radius*3,width:radius*6,height:radius*6)),with:.radialGradient(Gradient(colors:colors),center:point,startRadius:0,endRadius:radius*3))
                     }
                 }
-                guard plan.overlay != .none else { return }
-                for i in 0..<plan.scene.particleCap {
-                    let x=Double((i*43+13)%97)/100,y=(Double((i*31+7)%101)/100+elapsed*(plan.overlay == .snow ? 0.035:0.018)).truncatingRemainder(dividingBy:1)
-                    let radius=plan.overlay == .snow ? 1.2:1.7
-                    let point=CGPoint(x:x*size.width,y:y*size.height)
-                    // Keep the actual avatar clear as particles move past it.
-                    if plan.layout.avatar.intersects(.init(x:max(0,x-0.003),y:max(0,y-0.003),width:0.006,height:0.006)) { continue }
-                    let color:Color=plan.overlay == .leaves ? Color(red:0.75,green:0.39,blue:0.12):plan.overlay == .petals ? Color(red:0.85,green:0.49,blue:0.55):Color(red:1,green:0.91,blue:0.70)
-                    context.fill(Path(ellipseIn:CGRect(x:point.x,y:point.y,width:radius*2,height:radius*2)),with:.color(color.opacity(0.45)))
+                for particle in PluginSeasonalMotion.sample(scene:plan.scene,overlay:plan.overlay,elapsed:elapsed) {
+                    let x=particle.x,y=particle.y
+                    if plan.layout.avatar.intersects(.init(x:max(0,x-0.008),y:max(0,y-0.008),width:0.016,height:0.016)) { continue }
+                    var local=context
+                    local.translateBy(x:x*size.width,y:y*size.height)
+                    local.rotate(by:.radians(particle.rotation))
+                    local.scaleBy(x:particle.size,y:particle.size)
+                    let color:Color
+                    switch particle.kind {
+                    case .bat: color=Color(pluginHex:"#69517d")
+                    case .leaf: color=Color(pluginHex:"#c47732")
+                    case .petal,.heart: color=Color(pluginHex:"#da8099")
+                    case .snow: color=Color(pluginHex:"#eef6ff")
+                    default: color=Color(pluginHex:"#e7bf70")
+                    }
+                    local.fill(PluginSeasonalParticlePath.path(kind:particle.kind,phase:particle.phase),with:.color(color.opacity(particle.opacity)))
                 }
+
             }
         }.task(id:runID) {
             let token=UUID();epoch=token;running=false
@@ -166,3 +176,23 @@ private struct PluginHolidayVisibility:NSViewRepresentable {
     }
 }
 #endif
+
+private enum PluginSeasonalParticlePath {
+    static func path(kind:PluginSeasonalParticle.Kind,phase:Double)->Path {
+        var p=Path()
+        switch kind {
+        case .snow: p.addEllipse(in:CGRect(x:-1,y:-1,width:2,height:2))
+        case .confetti: p.addRoundedRect(in:CGRect(x:-0.5,y:-1.2,width:1,height:2.4),cornerSize:CGSize(width:0.2,height:0.2))
+        case .heart:
+            p.move(to:CGPoint(x:0,y:1));p.addCurve(to:CGPoint(x:0,y:-0.55),control1:CGPoint(x:-2,y:-0.25),control2:CGPoint(x:-0.8,y:-1.5));p.addCurve(to:CGPoint(x:0,y:1),control1:CGPoint(x:0.8,y:-1.5),control2:CGPoint(x:2,y:-0.25))
+        case .bat:
+            let wing=0.5+sin(phase)*0.4
+            p.move(to:CGPoint(x:0,y:0.1));p.addLine(to:CGPoint(x:-1.6,y:-wing));p.addQuadCurve(to:CGPoint(x:-0.4,y:0.4),control:CGPoint(x:-1,y:0));p.addLine(to:CGPoint(x:0,y:0.2));p.addLine(to:CGPoint(x:0.4,y:0.4));p.addQuadCurve(to:CGPoint(x:1.6,y:-wing),control:CGPoint(x:1,y:0));p.closeSubpath()
+        case .leaf,.petal:
+            p.move(to:CGPoint(x:-1,y:0));p.addQuadCurve(to:CGPoint(x:1,y:0),control:CGPoint(x:0,y:-1.2));p.addQuadCurve(to:CGPoint(x:-1,y:0),control:CGPoint(x:0,y:0.8))
+        case .star:
+            for i in 0..<8 { let angle=Double(i)*Double.pi/4-Double.pi/2,r=i%2 == 0 ? 1.0:0.3;let v=CGPoint(x:cos(angle)*r,y:sin(angle)*r);if i == 0 { p.move(to:v) } else { p.addLine(to:v) } };p.closeSubpath()
+        }
+        return p
+    }
+}

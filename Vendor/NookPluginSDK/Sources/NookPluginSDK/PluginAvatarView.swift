@@ -36,10 +36,10 @@ private typealias AvatarScalar = Float
             for node in source.rootNode.childNodes { node.removeFromParentNode(); model.addChildNode(node) }
             model.enumerateChildNodes { node, _ in
                 node.removeAllAnimations()
-                if self.style == "illustration.monoline" {
+                if self.style.hasPrefix("illustration.") {
                     node.geometry?.materials.forEach { material in
                         material.lightingModel = .constant; material.emission.contents = AvatarColor.black; material.emission.intensity = 0; material.isDoubleSided = true
-                        if let imageURL = PluginAvatarStyles.illustration(style: self.style, persona: persona) {
+                        if let imageURL = PluginAvatarStyles.illustration(style: self.style, persona: persona, body: material.name?.hasPrefix("ArtBody") == true) {
                             #if canImport(AppKit) && !targetEnvironment(macCatalyst)
                             material.diffuse.contents = NSImage(contentsOf: imageURL)
                             #else
@@ -69,7 +69,7 @@ private typealias AvatarScalar = Float
         camera.camera?.orthographicScale = persona == .nero ? 1.59 : 1.825
         camera.position = SCNVector3(2, persona == .nero ? 2 : 1.7, 7.5)
         camera.look(at: SCNVector3(0, persona == .ember ? 0.27 : 0, 0))
-        if self.style == "illustration.monoline" { camera.position = SCNVector3(0,0,7.5); camera.look(at: SCNVector3(0,0,0)); camera.camera?.orthographicScale = 1.05 }
+        if self.style.hasPrefix("illustration.") { camera.position = SCNVector3(0,0,7.5); camera.look(at: SCNVector3(0,0,0)); camera.camera?.orthographicScale = 1.05 }
         scene.rootNode.addChildNode(camera)
         let ambient = SCNNode(); ambient.light = SCNLight(); ambient.light?.type = .ambient; ambient.light?.intensity = 130
         scene.rootNode.addChildNode(ambient)
@@ -114,7 +114,7 @@ private typealias AvatarScalar = Float
         model.eulerAngles=SCNVector3(AvatarScalar(gaze.pitchDegrees*radians),AvatarScalar(gaze.yawDegrees*radians),AvatarScalar(gaze.rollDegrees*radians))
         model.position=SCNVector3(AvatarScalar(gaze.offsetX),AvatarScalar(gaze.offsetY),0)
         for (eye,base) in eyes {
-            var point=SCNVector3(base.x+AvatarScalar(gaze.x*(style == "illustration.monoline" ? 0.015:0.09)),base.y+AvatarScalar(gaze.y*(style == "illustration.monoline" ? 0.01:0.06)),base.z)
+            var point=SCNVector3(base.x+AvatarScalar(gaze.x*(style.hasPrefix("illustration.") ? 0.015:0.09)),base.y+AvatarScalar(gaze.y*(style.hasPrefix("illustration.") ? 0.01:0.06)),base.z)
             if persona == .ember && style == "elemental" {
                 let radius=base.x*base.x+base.y*base.y+base.z*base.z
                 point.z=sqrt(max(0,radius-point.x*point.x-point.y*point.y))

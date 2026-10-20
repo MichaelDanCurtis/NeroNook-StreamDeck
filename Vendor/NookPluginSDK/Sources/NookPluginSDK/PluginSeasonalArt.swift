@@ -71,7 +71,7 @@ public struct PluginSeasonalArtLayer: Codable, Equatable, Sendable, Identifiable
     public var depth:Double
     public var mirrored:Bool
 }
-public enum PluginSeasonalOverlay: String, Codable, Sendable { case snow, sparks, petals, leaves, none }
+public enum PluginSeasonalOverlay: String, Codable, Sendable { case snow, sparks, petals, leaves, bats, hearts, confetti, none }
 public struct PluginSeasonalArtPlan: Codable, Equatable, Sendable {
     public var version=1
     public var scene:PluginSeasonalScene
@@ -116,33 +116,62 @@ public struct PluginSeasonalArtPlan: Codable, Equatable, Sendable {
         } else {
             let heroes:[String],accents:[String]
             switch scene.holiday {
-            case .newYear: heroes=["new-year"];accents=["star","bauble"];overlay = .sparks
-            case .valentines: heroes=["rose-bouquet","heart"];accents=["heart"];overlay = .petals
+            case .newYear: heroes=["new-year","gift"];accents=["star","lights"];overlay = .confetti
+            case .valentines: heroes=["rose-bouquet","heart"];accents=["heart","rose-bouquet"];overlay = .hearts
             case .presidents: heroes=["civic-ribbon","laurel"];accents=["star"];overlay = .none
-            case .stPatricks: heroes=["clover"];accents=["bauble","clover"];overlay = .sparks
+            case .stPatricks: heroes=["clover"];accents=["clover","star"];overlay = .sparks
             case .easter: heroes=["spring-eggs","spring-flowers"];accents=["spring-flowers"];overlay = .petals
             case .mothersDay: heroes=["rose-bouquet","heart"];accents=["spring-flowers"];overlay = .petals
             case .fathersDay: heroes=["blue-bouquet","star"];accents=["star"];overlay = .sparks
             case .memorial,.veterans: heroes=["memorial-candle","laurel"];accents=["laurel"];overlay = .none
             case .juneteenth: heroes=["juneteenth-ribbon","star"];accents=["star"];overlay = .sparks
-            case .independence: heroes=["civic-ribbon","star"];accents=["star","bauble"];overlay = .sparks
+            case .independence: heroes=["civic-ribbon","star"];accents=["star","civic-ribbon"];overlay = .sparks
             case .labor: heroes=["gear","laurel"];accents=["spring-flowers"];overlay = .none
             case .columbus: heroes=["compass","laurel"];accents=["star"];overlay = .none
-            case .halloween: heroes=["pumpkin","lantern"];accents=["autumn-harvest","pumpkin"];overlay = .leaves
+            case .halloween: heroes=["pumpkin","lantern"];accents=["autumn-harvest","pumpkin"];overlay = .bats
             case .thanksgiving: heroes=["turkey","autumn-harvest"];accents=["pumpkin","autumn-harvest"];overlay = .leaves
             case .christmas: heroes=[];accents=[]
             }
+            if scene.holiday.isReflective {
+                add("remembrance.candle","memorial-candle",1,cx-0.23,floor-0.22,0.12,0.22)
+                add("remembrance.wreath","laurel",2,cx+0.11,floor-0.20,0.12,0.20)
+                add("remembrance.ribbon","civic-ribbon",3,cx-0.15,floor+0.015,0.30,0.045)
+                add("remembrance.star","star",4,cx-0.025,0.14,0.05,0.075)
+                add("remembrance.left","laurel",5,0.025,0.30,0.08,0.13)
+                add("remembrance.right","laurel",5,0.895,0.30,0.08,0.13,-0.2,true)
+                let plan=Self(scene:scene,layout:layout,layers:layers,overlay:.none)
+                return (try? plan.validate(catalog:catalog)) != nil ? plan:nil
+            }
             let first=heroes.first ?? "star",second=heroes.dropFirst().first ?? first
-            add("hero.left",first,1,cx-0.27,floor-0.27,0.18,0.27)
-            add("hero.right",second,min(2,scene.totalDays),cx+0.09,floor-0.23,0.18,0.23,-0.15,true)
-            for (index,asset) in accents.enumerated() {
-                add("accent.left.\(index)",asset,min(3+index,scene.totalDays),0.025+Double(index)*0.08,0.20+Double(index)*0.13,0.14,0.20)
-                add("accent.right.\(index)",asset,min(3+index,scene.totalDays),0.835-Double(index)*0.08,0.20+Double(index)*0.13,0.14,0.20,-0.15,true)
+            // A cumulative perimeter leaves a clear conversation area. Each
+            // occasion has its own rendered hero pair and restrained accents;
+            // later days enrich the scene instead of replacing yesterday's art.
+            add("hero.left",first,1,cx-0.30,floor-0.31,0.22,0.31)
+            add("hero.right",second,2,cx+0.10,floor-0.27,0.20,0.27,-0.15,true)
+            let accent=accents.first ?? first,trim=accents.last ?? second
+            add("border.left.low",accent,2,0.025,0.62,0.12,0.15)
+            add("border.right.low",accent,2,0.855,0.62,0.12,0.15,-0.2,true)
+            add("border.left.high",trim,3,0.015,0.20,0.10,0.16)
+            add("border.right.high",trim,3,0.885,0.20,0.10,0.16,-0.2,true)
+            add("cluster.left.near",accent,3,0.10,0.39,0.10,0.14)
+            add("cluster.right.near",accent,3,0.80,0.39,0.10,0.14,-0.15,true)
+            add("cluster.left.small",trim,4,0.18,0.13,0.09,0.13)
+            add("cluster.right.small",trim,4,0.73,0.13,0.09,0.13,-0.2,true)
+            add("perimeter.left",accent,4,0.02,0.43,0.09,0.14)
+            add("perimeter.right",accent,4,0.89,0.43,0.09,0.14,-0.2,true)
+            let last=scene.totalDays
+            add("crown.left",trim,min(5,last),0.28,0.025,0.08,0.10)
+            add("crown.right",trim,min(5,last),0.64,0.025,0.08,0.10,-0.2,true)
+            if last > 5 {
+                add("outer.left",accent,5,0.12,0.24,0.065,0.11)
+                add("outer.right",accent,5,0.815,0.24,0.065,0.11,-0.2,true)
+                add("crown.center",trim,6,0.46,0.015,0.08,0.10)
+                add("corner.left",accent,6,0.005,0.28,0.07,0.10)
+                add("corner.right",accent,6,0.925,0.28,0.07,0.10,-0.2,true)
             }
-            if scene.day == scene.totalDays {
-                add("final.left",first,scene.totalDays,0.005,0.40,0.15,0.20)
-                add("final.right",second,scene.totalDays,0.845,0.40,0.15,0.20,-0.15,true)
-            }
+            add("final.left",trim,last,0.025,0.73,0.10,0.075)
+            add("final.right",trim,last,0.875,0.73,0.10,0.075,-0.2,true)
+
         }
         let plan=Self(scene:scene,layout:layout,layers:layers,overlay:overlay)
         guard !layers.isEmpty,(try? plan.validate(catalog:catalog)) != nil else { return nil }

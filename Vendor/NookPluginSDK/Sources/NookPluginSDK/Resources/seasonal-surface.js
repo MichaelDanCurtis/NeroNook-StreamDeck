@@ -1,3 +1,20 @@
+/* Matches PluginSeasonalMotion; deterministic finite overlay, no audio/actions. */
+function sampleSeasonalParticles(scene, overlay, elapsed) {
+  const duration=scene.intensity==='low'?12:24;
+  if(!Number.isFinite(elapsed)||elapsed<0||elapsed>=duration||scene.intensity==='off'||['memorial','veterans'].includes(scene.holiday)||overlay==='none')return [];
+  const cap=scene.intensity==='low'?Math.min(scene.day,6):Math.min(scene.day*2,24);
+  return Array.from({length:cap},(_,i)=>{
+    const kind=({snow:'snow',sparks:'star',petals:'petal',leaves:'leaf',bats:i%3===0?'bat':'leaf',hearts:'heart',confetti:'confetti'})[overlay]||'star';
+    const phase=elapsed*(kind==='bat'?5.5:1.6)+i*1.9,drift=Math.sin(elapsed*.7+i)*.025;
+    const seedX=((i*43+13)%97)/100,seedY=((i*31+7)%101)/100;
+    const rising=kind==='heart'||kind==='star',speed=kind==='bat'?.07:kind==='snow'?.035:.022;
+    const travel=(seedY+elapsed*speed)%1,x=Math.min(.985,Math.max(.015,seedX+drift));
+    const y=kind==='bat'?Math.min(.30,Math.max(.06,seedY*.25+Math.sin(elapsed+i)*.025)):rising?1-travel:travel;
+    const size=kind==='bat'?10:kind==='snow'?1.4:kind==='heart'?5:kind==='leaf'?4.2:3;
+    const edgeFade=Math.min(1,elapsed/.6)*Math.min(1,(duration-elapsed)/.8);
+    return {kind,x,y,size,rotation:kind==='bat'?Math.sin(elapsed+i)*.12:phase*.4,phase,opacity:edgeFade*(kind==='bat'?.55:.40)};
+  });
+}
 /* Local static art plus a finite overlay. No microphone, network or action API. */
 if (document.body?.hasAttribute('data-nook-seasonal-surface')) {
   const assets=new Map(seasonalData.catalog.assets.map(a=>[a.id,a])), plans=seasonalData.plans;
@@ -109,12 +126,22 @@ if (document.body?.hasAttribute('data-nook-seasonal-surface')) {
       const g=ctx.createRadialGradient(x,y,0,x,y,radius);g.addColorStop(0,a.color);g.addColorStop(1,a.color+'00');
       ctx.globalAlpha=.18+.09*(1+Math.sin(t*1.6+i*1.9));ctx.fillStyle=g;ctx.fillRect(x-radius,y-radius,radius*2,radius*2);
     }
-    const kind=plans[current.holiday+'.'+current.day].overlay,cap=current.intensity==='low'?Math.min(current.day,6):Math.min(current.day*2,24);
-    ctx.globalAlpha=.45;ctx.fillStyle=kind==='leaves'?'#bf641f':kind==='petals'?'#d97d8c':'#ffe8b3';
-    for(let i=0;i<cap;i++) {
-      const x=((i*43+13)%97)/100*w,y=((((i*31+7)%101)/100+t*(kind==='snow'?.035:.018))%1)*h,a=geometry.anchor;
-      if(x>=a.x-3&&x<=a.x+a.width+3&&y>=a.y-3&&y<=a.y+a.height+3)continue;
-      ctx.beginPath();ctx.arc(x,y,kind==='snow'?1.2:1.7,0,Math.PI*2);ctx.fill();
+    const kind=plans[current.holiday+'.'+current.day].overlay;
+    for(const p of sampleSeasonalParticles(current,kind,t)) {
+      const x=p.x*w,y=p.y*h,a=geometry.anchor;
+      if(x>=a.x-8&&x<=a.x+a.width+8&&y>=a.y-8&&y<=a.y+a.height+8)continue;
+      ctx.save();ctx.translate(x,y);ctx.rotate(p.rotation);ctx.scale(p.size,p.size);ctx.globalAlpha=p.opacity;
+      ctx.fillStyle=({bat:'#69517d',leaf:'#c47732',petal:'#da8099',heart:'#da8099',snow:'#eef6ff'})[p.kind]||'#e7bf70';
+      ctx.beginPath();
+      switch(p.kind) {
+        case 'snow':ctx.arc(0,0,1,0,Math.PI*2);break;
+        case 'confetti':ctx.rect(-.5,-1.2,1,2.4);break;
+        case 'heart':ctx.moveTo(0,1);ctx.bezierCurveTo(-2,-.25,-.8,-1.5,0,-.55);ctx.bezierCurveTo(.8,-1.5,2,-.25,0,1);break;
+        case 'bat':{const wing=.5+Math.sin(p.phase)*.4;ctx.moveTo(0,.1);ctx.lineTo(-1.6,-wing);ctx.quadraticCurveTo(-1,0,-.4,.4);ctx.lineTo(0,.2);ctx.lineTo(.4,.4);ctx.quadraticCurveTo(1,0,1.6,-wing);ctx.closePath();break;}
+        case 'leaf':case 'petal':ctx.moveTo(-1,0);ctx.quadraticCurveTo(0,-1.2,1,0);ctx.quadraticCurveTo(0,.8,-1,0);break;
+        default:for(let i=0;i<8;i++){const angle=i*Math.PI/4-Math.PI/2,r=i%2===0?1:.3;const x=Math.cos(angle)*r,y=Math.sin(angle)*r;i===0?ctx.moveTo(x,y):ctx.lineTo(x,y);}ctx.closePath();
+      }
+      ctx.fill();ctx.restore();
     }
     ctx.restore();animation=requestAnimationFrame(tick);
   }

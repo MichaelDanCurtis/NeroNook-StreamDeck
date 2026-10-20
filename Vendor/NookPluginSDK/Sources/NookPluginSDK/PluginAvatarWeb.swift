@@ -14,7 +14,7 @@ html[data-nook-contrast="true"] .nook-presence::after,html[data-nook-reduce-tran
     public static let bootstrap = #"""
 (() => {
  const selector='.nook-presence', base='nook-view://surface/__nook_sdk__/';
- const styles=["illustration.monoline"];
+ const styles=["illustration.circuit","illustration.stardust","illustration.origami","illustration.pixel","illustration.ceramic","illustration.liquid-glass","illustration.ink","illustration.plush","illustration.low-poly","illustration.art-deco","illustration.wireframe","illustration.paper-cut","illustration.cel","illustration.kinetic","illustration.bauhaus","illustration.micro-led","illustration.watercolor","illustration.woodcut","illustration.monoline","illustration.clay","illustration.neon-ronin","illustration.graffiti-ghost","illustration.chrome-drake","illustration.holo-phantom","illustration.street-runner"];
  let library=null; const members=new Set(); let appearance=null;
  let pointer=null,gazeFrame=0,gazeAt=0,announced=null;
  const reduced=()=>!!appearance?.reduceMotion||matchMedia('(prefers-reduced-motion:reduce)').matches;
@@ -22,8 +22,11 @@ html[data-nook-contrast="true"] .nook-presence::after,html[data-nook-reduce-tran
  const mouthWeight=(x,active)=>Math.sqrt(Math.min(1,weight(x,active)*8));
  const time=w=>w<=.7?w/7:.2+(w-.3)/7;
  function load(){return library||(library=new Promise((resolve,reject)=>{
-   if(customElements.get('nook-avatar-model')){resolve();return;}
-   const s=document.createElement('script');s.src=base+'elemental-model-viewer.js';s.onload=resolve;s.onerror=reject;document.head.append(s);
+   // Public viewer cache API: retain at most two unused models while style
+   // changes reuse the existing per-presence viewer. Active models stay pinned.
+   const ready=()=>{const ctor=customElements.get('nook-avatar-model');if(typeof ctor==='function')ctor.modelCacheSize=2;resolve();};
+   if(customElements.get('nook-avatar-model')){ready();return;}
+   const s=document.createElement('script');s.src=base+'elemental-model-viewer.js';s.onload=ready;s.onerror=reject;document.head.append(s);
  }));}
  function persona(el){return el.dataset.nookAvatar==='ember'?'ember':'nero';}
  function style(el){const value=appearance?.avatars?.[persona(el)+'Style'];return styles.includes(value)?value:'elemental';}
@@ -94,9 +97,9 @@ html[data-nook-contrast="true"] .nook-presence::after,html[data-nook-reduce-tran
    }
  }
  async function mouth(item){
-   const v=item.viewer;if(!item.element.isConnected||!v?.loaded)return;
+   const v=item.viewer,generation=item.sourceSerial;if(!item.element.isConnected||!v?.loaded)return;
    if(v.animationName!=='Speak'){v.animationCrossfadeDuration=0;v.animationName='Speak';await v.updateComplete;}
-   if(item.viewer!==v||!item.element.isConnected||!v.loaded)return;
+   if(item.viewer!==v||!item.element.isConnected||!v.loaded||item.sourceSerial!==generation)return;
    // Read the latest state after async viewer setup. Stop/visibility changes
    // during that await must win over an older speaking update.
    const active=item.element.dataset.nookSpeaking==='true';
@@ -106,6 +109,7 @@ html[data-nook-contrast="true"] .nook-presence::after,html[data-nook-reduce-tran
    if(value===0){item.level=0;v.currentTime=0;return;}
    const from=item.level,start=performance.now();
    function step(now){
+     if(!item.element.isConnected||item.sourceSerial!==generation)return;
      const t=Math.min(1,Math.max(0,(now-start)/90));item.level=from+(value-from)*t;v.currentTime=time(item.level);
      if(t<1)item.frame=requestAnimationFrame(step);
    }
@@ -115,29 +119,54 @@ html[data-nook-contrast="true"] .nook-presence::after,html[data-nook-reduce-tran
    const value=appearance?.seasonalScene,el=item.element;
    el.dataset.nookSeason=!value||appearance?.increasedContrast||appearance?.reduceTransparency||el.getBoundingClientRect().width<80?'':value.holiday==='christmas'?'🌲'+(value.day>=2?' 🎁':'')+(value.day>=3?' ✦':'')+(value.day>=4?' ·':''):value.holiday==='thanksgiving'?'🍂'+(value.day>=3?' 🦃':''):'🎃'+(value.day>=3?' ☾':'');
  }
- function camera(item){item.viewer.setAttribute('camera-orbit',item.style==='illustration.monoline'?'0deg 90deg 4m':'15deg 77deg auto');}
+ function camera(item){item.viewer.setAttribute('camera-orbit',item.style.startsWith('illustration.')?'0deg 90deg 4m':'15deg 77deg auto');}
+ function assignSource(item,next,source){
+   item.style=next;item.assignedSource=source;item.sourceSerial++;item.stamp++;item.ready=false;item.gazeStamp='';item.level=0;
+   cancelAnimationFrame(item.frame);if(item.viewer.loaded){item.viewer.pause();item.viewer.currentTime=0;}
+   camera(item);item.viewer.src=source;
+ }
+ function selectStyle(item,next){
+   const serial=++item.assetSerial;item.requestedStyle=next;
+   // Always retain an immediately usable embedded fallback. The restricted WK
+   // CSP permits data fetches only; the native bridge supplies selected art.
+   assignSource(item,'elemental',window.__nookAvatarModels[persona(item.element)]);
+   if(next==='elemental')return;
+   const p=persona(item.element),handler=window.webkit?.messageHandlers?.neroAvatarModel;
+   let request;
+   if(handler){request=Promise.resolve().then(()=>handler.postMessage({style:next,persona:p,document:window.__nookAvatarDocument})).then(reply=>{
+     if(reply?.style!==next||reply?.persona!==p||typeof reply.source!=='string'||reply.source.length>2796240||!/^data:model\/gltf-binary;base64,[A-Za-z0-9+/]+={0,2}$/.test(reply.source))throw Error('Invalid bundled artwork');
+     return reply.source;
+   });}else if(typeof location!=='undefined'&&['http:','https:'].includes(location.protocol)&&['localhost','127.0.0.1','[::1]'].includes(location.hostname)){
+     // Disposable loopback authoring fixture only; production never broadens CSP.
+     request=Promise.resolve(base+'avatar-'+next.slice(13)+'-'+p+'.glb');
+   }else{return;}
+   request.then(source=>{
+     if(!item.element.isConnected||!members.has(item)||item.assetSerial!==serial||item.requestedStyle!==next)return;
+     assignSource(item,next,source);
+   }).catch(()=>{}); // A denied/stale/exhausted request keeps Elemental visible.
+ }
  function sync(item){
    scene(item);expression(item);const next=style(item.element);
-   if(item.viewer&&next!==item.style){item.style=next;item.ready=false;item.gazeStamp='';camera(item);item.viewer.src=next==='elemental'?window.__nookAvatarModels[persona(item.element)]:base+'avatar-'+next.slice(13)+'-'+persona(item.element)+'.glb';}
+   if(item.viewer&&next!==item.requestedStyle)selectStyle(item,next);
  }
  function attach(el){
    if(el.dataset.nookAvatarMounted)return;el.dataset.nookAvatarMounted='true';
    // The span remains decorative. Its owner supplies accessible status text.
-   const item={element:el,viewer:null,posture:null,stamp:0,visible:true,level:0,frame:0,ready:false,gaze:{x:0,y:0},gazeStamp:''};members.add(item);
+   const item={element:el,viewer:null,posture:null,stamp:0,visible:true,level:0,frame:0,ready:false,assetSerial:0,sourceSerial:0,requestedStyle:null,assignedSource:null,gaze:{x:0,y:0},gazeStamp:''};members.add(item);
    load().then(()=>{
      if(!el.isConnected){members.delete(item);return;}
      const p=persona(el),v=document.createElement('nook-avatar-model');item.viewer=v;
      v.setAttribute('aria-hidden','true');v.setAttribute('loading','eager');v.setAttribute('reveal','auto');v.setAttribute('interaction-prompt','none');
      v.setAttribute('environment-image','neutral');v.setAttribute('shadow-intensity','0');v.setAttribute('exposure','.9');v.setAttribute('camera-orbit','15deg 77deg auto');
      v.setAttribute('poster',base+'elemental-'+String(palette(item)?.index||1).padStart(2,'0')+'-'+p+'.png');
-     item.style=style(el);camera(item);v.src=item.style==='elemental'?window.__nookAvatarModels[p]:base+'avatar-'+item.style.slice(13)+'-'+p+'.glb';v.addEventListener('load',async()=>{paint(item);await mouth(item);if(!el.isConnected)return;item.ready=true;gazePose(item);track(pointer);});
-     v.addEventListener('error',()=>{v.remove();el.style.setProperty('background-image','url('+base+'elemental-01-'+p+'.png)','important');el.style.backgroundSize='contain';});
+     v.addEventListener('load',async()=>{const serial=item.sourceSerial;if(v.src!==item.assignedSource)return;paint(item);await mouth(item);if(!el.isConnected||serial!==item.sourceSerial)return;item.ready=true;gazePose(item);track(pointer);});
+     v.addEventListener('error',()=>{if(!el.isConnected)return;if(item.style!=='elemental'){assignSource(item,'elemental',window.__nookAvatarModels[p]);return;}v.remove();el.style.setProperty('background-image','url('+base+'elemental-01-'+p+'.png)','important');el.style.backgroundSize='contain';});
      const posture=document.createElement('span');posture.style.cssText='display:block;width:100%;height:100%;pointer-events:none';item.posture=posture;posture.append(v);
-     el.replaceChildren(posture);scene(item);expression(item);observer.observe(el);
+     el.replaceChildren(posture);sync(item);observer.observe(el);
    }).catch(()=>{el.style.setProperty('background-image','url('+base+'elemental-01-'+persona(el)+'.png)','important');el.style.backgroundSize='contain';});
  }
  const observer=new IntersectionObserver(entries=>{for(const e of entries){const item=[...members].find(i=>i.element===e.target);if(item){item.visible=e.isIntersecting;mouth(item);expression(item);if(!item.visible)resetGaze(item);}}announce();track(pointer);});
- function scan(){document.querySelectorAll(selector).forEach(attach);for(const item of members)if(!item.element.isConnected){cancelAnimationFrame(item.frame);observer.unobserve(item.element);members.delete(item);}if(!members.size){cancelAnimationFrame(gazeFrame);gazeFrame=0;}announce();}
+ function scan(){document.querySelectorAll(selector).forEach(attach);for(const item of members)if(!item.element.isConnected){item.assetSerial++;item.sourceSerial++;cancelAnimationFrame(item.frame);observer.unobserve(item.element);members.delete(item);}if(!members.size){cancelAnimationFrame(gazeFrame);gazeFrame=0;}announce();}
  const changes=new MutationObserver(entries=>{if(entries.some(e=>e.type==='childList'))scan();for(const e of entries){const item=[...members].find(i=>i.element===e.target);if(item){mouth(item);expression(item);}}});
  changes.observe(document.documentElement,{childList:true,subtree:true,attributes:true,attributeFilter:['data-nook-speech-level','data-nook-speaking','data-nook-expression']});
  document.addEventListener('visibilitychange',()=>{members.forEach(i=>{mouth(i);expression(i);});announce();track(document.hidden?null:pointer);});

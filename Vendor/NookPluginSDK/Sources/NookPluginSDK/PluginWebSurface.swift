@@ -41,6 +41,7 @@ public struct PluginWebSurface: NSViewRepresentable {
         configuration.setURLSchemeHandler(context.coordinator, forURLScheme: PluginViewResources.scheme)
         configuration.userContentController.addScriptMessageHandler(context.coordinator, contentWorld: .page, name: "neroView")
         configuration.userContentController.addScriptMessageHandler(context.coordinator, contentWorld: .page, name: "neroAvatarPresence")
+        configuration.userContentController.addScriptMessageHandler(context.coordinator, contentWorld: .page, name: "neroAvatarModel")
         configuration.userContentController.addUserScript(.init(source: Self.bridge, injectionTime: .atDocumentStart, forMainFrameOnly: true))
         let web = PluginVisibleWebView(frame: .zero, configuration: configuration)
         web.visibilityChanged={ [weak coordinator=context.coordinator,weak web] visible in
@@ -89,8 +90,7 @@ public struct PluginWebSurface: NSViewRepresentable {
         private var lastAppearance: PluginAppearanceContext?
         private var eventsAt = Date.distantPast
         private var eventCount = 0
-        private var assetRequests = 0
-        private var assetBytes = 0
+        private var assetBudget = PluginBundledAssetBudget()
         private let resourceSlots = ViewResourceSlots()
         private var resourceTasks: [ObjectIdentifier: Task<Void, Never>] = [:]
         private var resourceWindow = Date()
@@ -133,13 +133,14 @@ public struct PluginWebSurface: NSViewRepresentable {
             }
         }
         func load(_ web: WKWebView) {
-            cancelResources(); stopPointer(); loaded = false; active = true; assetRequests = 0; assetBytes = 0
+            cancelResources(); stopPointer(); loaded = false; active = true; assetBudget = PluginBundledAssetBudget()
             appearanceDocument=UUID().uuidString; appearanceSerial=0; lastAppearance=nil
             do {
                 try owner.definition.validate()
                 let scripts = web.configuration.userContentController
                 scripts.removeAllUserScripts()
                 scripts.addUserScript(.init(source: try PluginThemeWeb.bootstrap(owner.appearance, documentID:appearanceDocument), injectionTime: .atDocumentStart, forMainFrameOnly: true))
+                scripts.addUserScript(.init(source: "Object.defineProperty(window, '__nookAvatarDocument', {value: \(String(decoding: try JSONEncoder().encode(appearanceDocument), as: UTF8.self))});", injectionTime: .atDocumentStart, forMainFrameOnly: true))
                 scripts.addUserScript(.init(source: PluginWebSurface.bridge, injectionTime: .atDocumentStart, forMainFrameOnly: true))
                 scripts.addUserScript(.init(source: PluginInterfaceWeb.bootstrap, injectionTime: .atDocumentEnd, forMainFrameOnly: true))
                 _ = try PluginViewResources.file(owner.definition.entry, root: owner.root)
@@ -193,9 +194,8 @@ public struct PluginWebSurface: NSViewRepresentable {
                       urlSchemeTask.request.httpMethod == "GET" else { throw ModuleProblem("Invalid resource request.") }
                 guard url.query == nil, url.fragment == nil, url.port == nil else { throw ModuleProblem("Invalid resource URL.") }
                 if url.path.hasPrefix("/__nook_sdk__/") {
-                    guard assetRequests < 512, assetBytes < 32 * 1024 * 1024,
-                          let data = PluginVisualAssets.data(path: url.path) else { throw ModuleProblem("Unknown SDK asset.") }
-                    assetRequests += 1; assetBytes += data.count
+                    guard let data = PluginVisualAssets.data(path: url.path) else { throw ModuleProblem("Unknown SDK asset.") }
+                    try assetBudget.consume(byteCount: data.count)
                     let response = HTTPURLResponse(url: url, statusCode: 200, httpVersion: "HTTP/1.1", headerFields: ["Content-Type": PluginVisualAssets.mime(path:url.path), "X-Content-Type-Options": "nosniff", "Cache-Control": "max-age=86400"])!
                     urlSchemeTask.didReceive(response); urlSchemeTask.didReceive(data); urlSchemeTask.didFinish()
                     return
@@ -230,12 +230,10 @@ public struct PluginWebSurface: NSViewRepresentable {
                     }
                     return
                 }
-                guard assetRequests < 512, assetBytes < 32 * 1024 * 1024 else { throw ModuleProblem("View resource budget exceeded.") }; assetRequests += 1
                 let file = try PluginViewResources.file(String(url.path.dropFirst()), root: owner.root)
                 let data = try Data(contentsOf: file)
                 guard data.count <= 2 * 1024 * 1024 else { throw ModuleProblem("Asset exceeded its limit.") }
-                assetBytes += data.count
-                guard assetBytes <= 32 * 1024 * 1024 else { throw ModuleProblem("View resource budget exceeded.") }
+                try assetBudget.consume(byteCount: data.count)
                 let response = HTTPURLResponse(url: url, statusCode: 200, httpVersion: "HTTP/1.1", headerFields: [
                     "Content-Type": PluginViewResources.mime(file.pathExtension)! + (file.pathExtension == "html" ? "; charset=utf-8" : ""),
                     "Content-Security-Policy": "default-src 'none'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self'; connect-src data:; frame-src \((owner.definition.frames ?? []).isEmpty ? "'none'" : (owner.definition.frames ?? []).map(\.origin).joined(separator: " ")); object-src 'none'; base-uri 'none'; form-action 'none'; worker-src 'none'",
@@ -246,6 +244,26 @@ public struct PluginWebSurface: NSViewRepresentable {
         }
         public func webView(_ webView: WKWebView, stop urlSchemeTask: WKURLSchemeTask) { resourceTasks.removeValue(forKey: ObjectIdentifier(urlSchemeTask))?.cancel() }
         public func userContentController(_ userContentController: WKUserContentController, didReceive message: WKScriptMessage, replyHandler: @escaping @MainActor (Any?, String?) -> Void) {
+            if message.name == "neroAvatarModel" {
+                do {
+                    // Scripts can attach before didFinish. The exact main-frame
+                    // entry and per-load document token qualify that loading document.
+                    guard active, message.frameInfo.isMainFrame,
+                          let url = message.frameInfo.request.url,
+                          url.scheme == PluginViewResources.scheme, url.host == "surface",
+                          url.path == "/" + owner.definition.entry,
+                          url.query == nil, url.fragment == nil, url.port == nil,
+                          url.user == nil, url.password == nil else {
+                        throw ModuleProblem("Avatar surface is unavailable.")
+                    }
+                    let request = try PluginAvatarModelRequest(body: message.body, documentID: appearanceDocument, selection: owner.appearance.avatars)
+                    let data = try request.data()
+                    try assetBudget.consume(byteCount: data.count)
+                    replyHandler(["style": request.style, "persona": request.persona.rawValue,
+                                  "source": "data:model/gltf-binary;base64," + data.base64EncodedString()], nil)
+                } catch { replyHandler(nil, "Avatar artwork is unavailable.") }
+                return
+            }
             if message.name == "neroAvatarPresence" {
                 guard active,loaded,message.frameInfo.isMainFrame,
                       message.frameInfo.request.url?.scheme == PluginViewResources.scheme,
