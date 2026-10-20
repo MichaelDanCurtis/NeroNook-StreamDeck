@@ -58,7 +58,7 @@ public struct PluginWebSurface: NSViewRepresentable {
         context.coordinator.owner = self
         if previous.root != root || previous.panelID != panelID || previous.definition.entry != definition.entry || previous.definition.revision != definition.revision || previous.definition.frames != definition.frames {
             context.coordinator.load(web)
-        } else if previous.definition.state != definition.state { context.coordinator.update(web) }
+        } else if previous.definition.state != definition.state || previous.definition.avatarPlayback != definition.avatarPlayback { context.coordinator.update(web) }
         context.coordinator.updateAppearance(web)
     }
     public static func dismantleNSView(_ web: WKWebView, coordinator: Coordinator) {
@@ -102,6 +102,7 @@ public struct PluginWebSurface: NSViewRepresentable {
         private var pointerSample: PluginAvatarPointerSource.Sample?
         private var pointerEpoch=0
         private let reactionAudioOwner=UUID()
+        private var delegatedReaction:UUID?
         private var reactionAt=Date.distantPast
         func stopPointer() { PluginAvatarReactionAudio.shared.stop(owner:reactionAudioOwner); pointer.stop(); pointerEpoch += 1; pointerBusy=false; pointerPending=false; pointerSample=nil }
         private func trackPointer(_ web: WKWebView, enabled: Bool) {
@@ -126,13 +127,18 @@ public struct PluginWebSurface: NSViewRepresentable {
                 self.pointerBusy=false;self.flushPointer(web)
             }
         }
-        func cancelResources() { let tasks = resourceTasks.values; resourceTasks.removeAll(); for task in tasks { task.cancel() } }
+        private func stopDelegatedReaction() {
+            guard let id=delegatedReaction else{return};delegatedReaction=nil
+            let event=PluginViewEvent(panelID:owner.panelID,revision:owner.definition.revision,name:PluginAvatarPlayback.event,values:["kind":.string("stop"),"id":.string(id.uuidString)])
+            if (try? owner.definition.validate(event)) != nil {try? owner.onEvent(event)}
+        }
+        func cancelResources() { stopDelegatedReaction(); let tasks = resourceTasks.values; resourceTasks.removeAll(); for task in tasks { task.cancel() } }
         init(_ owner: PluginWebSurface) { self.owner = owner }
         func seasonalVisibility(_ web:WKWebView,visible:Bool) {
-            guard active,loaded else{return};let document=appearanceDocument
+            guard active,loaded else{return};if !visible {stopDelegatedReaction()};let document=appearanceDocument
             Task { @MainActor [weak self,weak web] in
                 guard let self,let web,self.active,self.loaded,self.appearanceDocument==document else{return}
-                _ = try? await web.callAsyncJavaScript("window.NookSeasonal?.setVisible(visible)",arguments:["visible":visible],in:nil,contentWorld:.page)
+                _ = try? await web.callAsyncJavaScript("window.NookSeasonal?.setVisible(visible); if(!visible) window.NookAvatar?.stop()",arguments:["visible":visible],in:nil,contentWorld:.page)
             }
         }
         func load(_ web: WKWebView) {
@@ -156,7 +162,8 @@ public struct PluginWebSurface: NSViewRepresentable {
         }
         func update(_ web: WKWebView) {
             guard loaded, active, let data = try? JSONEncoder().encode(owner.definition.state), let values = try? JSONSerialization.jsonObject(with: data) else { return }
-            Task { @MainActor in _ = try? await web.callAsyncJavaScript("window.__neroReceive(state)", arguments: ["state": values], in: nil, contentWorld: .page) }
+            let playback:Any = owner.definition.avatarPlayback.flatMap { try? JSONSerialization.jsonObject(with:JSONEncoder().encode($0)) } ?? NSNull()
+            Task { @MainActor in _ = try? await web.callAsyncJavaScript("window.__neroReceive(state); window.NookAvatar?.playback(playback)", arguments: ["state": values,"playback":playback], in: nil, contentWorld: .page) }
         }
         func updateAppearance(_ web: WKWebView) {
             guard loaded, active, lastAppearance != owner.appearance, let data = try? JSONEncoder().encode(owner.appearance), let value = try? JSONSerialization.jsonObject(with: data) else { return }
@@ -253,13 +260,19 @@ public struct PluginWebSurface: NSViewRepresentable {
                       let url=message.frameInfo.request.url,url.scheme==PluginViewResources.scheme,url.host=="surface",url.path=="/"+owner.definition.entry,
                       url.query==nil,url.fragment==nil,url.user==nil,url.password==nil,url.port==nil,
                       let body=message.body as? [String:Any],Set(body.keys)==Set(["kind","document"]),body["document"] as? String==appearanceDocument,
-                      let kind=body["kind"] as? String,["giggle","zoom","stop"].contains(kind) else { replyHandler(nil,"Character reaction unavailable.");return }
-                if kind=="stop" {PluginAvatarReactionAudio.shared.stop(owner:reactionAudioOwner);replyHandler(["stopped":true],nil);return}
+                      let kind=body["kind"] as? String,(["stop"]+PluginAvatarReaction.allCases.map(\.rawValue)).contains(kind) else { replyHandler(nil,"Character reaction unavailable.");return }
+                if kind=="stop" { stopDelegatedReaction();PluginAvatarReactionAudio.shared.stop(owner:reactionAudioOwner);replyHandler(["stopped":true],nil);return}
                 guard let reaction=PluginAvatarReaction(rawValue:kind),owner.appearance.avatars?.characterReactions != false,owner.appearance.avatarReactionsSuppressed != true,!owner.appearance.reduceMotion,
                       Date().timeIntervalSince(reactionAt)>=1 else {replyHandler(["duration":1.3],nil);return}
                 reactionAt=Date()
-                let duration=PluginAvatarReactionAudio.shared.play(reaction,owner:reactionAudioOwner,enabled:owner.appearance.avatars?.reactionSounds != false)
-                replyHandler(["duration":duration,"levels":PluginAvatarReactionCatalog.clips[kind]?.levels ?? [],"step":0.02],nil);return
+                if owner.definition.avatarReactions == true, reaction.hasAudio, owner.appearance.avatars?.reactionSounds != false {
+                    stopDelegatedReaction()
+                    let id=UUID();delegatedReaction=id
+                    let event=PluginViewEvent(panelID:owner.panelID,revision:owner.definition.revision,name:PluginAvatarPlayback.event,values:["kind":.string(kind),"id":.string(id.uuidString)])
+                    do {try owner.definition.validate(event);try owner.onEvent(event);replyHandler(["delegated":true,"id":id.uuidString],nil)}
+                    catch {delegatedReaction=nil;replyHandler(nil,"Selected voice is unavailable.")}
+                } else {replyHandler(["duration":reaction.duration],nil)}
+                return
             }
             if message.name == "neroAvatarModel" {
                 do {

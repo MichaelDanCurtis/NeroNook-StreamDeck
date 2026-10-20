@@ -28,22 +28,34 @@ public struct PluginAvatarGesture: Sendable {
         return false
     }
 }
-public enum PluginAvatarReaction:String,Sendable { case giggle,zoom }
-/// The same bounded curves are used by the native and web character surfaces.
+public enum PluginAvatarReaction:String,Codable,Sendable,CaseIterable {
+    case giggle,zoom,wave,twirl
+    public var spokenText:String {self == .giggle ? "He he, that tickles! Hehehe!" : "Zoom, zoom, zoom! Ha ha ha!"}
+    public var hasAudio:Bool {self == .giggle || self == .zoom}
+    public var duration:Double {PluginAvatarReactionCatalog.clips[rawValue]?.duration ?? (self == .wave ? 1.6:self == .twirl ? 1.8:3)}
+    public var caption:String {switch self {case .giggle:"He he, that tickles!";case .zoom:"Zoom, zoom, zoom!";case .wave:"Hi there!";case .twirl:"Ta-da!"}}
+    public var title:String {switch self {case .giggle:"Tickle";case .zoom:"Playful Zoom";case .wave:"Wave hello";case .twirl:"Happy twirl"}}
+}
+/// Same finite curves in native and web. Words use measured PCM; gestures never
+/// fabricate speech. Wave and twirl are intentionally silent.
 public struct PluginAvatarReactionPose:Equatable,Sendable {
-    public var x:Double=0,y:Double=0,roll:Double=0
+    public var x:Double=0,y:Double=0,roll:Double=0,turn:Double=0,wave:Double=0
     public var mouth:Double=0,smile:Double=0,laugh:Double=0,surprise:Double=0,blink:Double=0
     public init() {}
     public static func sample(_ kind:PluginAvatarReaction,elapsed:Double,duration:Double)->Self {
-        guard elapsed.isFinite,duration.isFinite,duration>0,elapsed>=0,elapsed<duration else { return .init() }
-        let t=elapsed/duration,fade=min(1,t*12)*min(1,(1-t)*10)
+        guard elapsed.isFinite,duration.isFinite,duration>0,elapsed>=0,elapsed<duration else {return .init()}
+        let t=elapsed/duration,fade=min(1,t*12)*min(1,(1-t)*10),wave=sin(t * .pi * 6),beat=max(0,wave)
         var p=Self()
-        if kind == .giggle {
-            let beat=max(0,sin(t * .pi * 6));p.y=beat*0.065*fade;p.roll=sin(t * .pi * 6)*0.055*fade
-            p.smile=0.75*fade;p.laugh=beat*0.70*fade;p.mouth=beat*0.25*fade;p.blink=0.65*fade
-        } else {
-            p.x=sin(t * .pi * 6)*0.12*fade;p.y=abs(sin(t * .pi * 6))*0.035*fade;p.roll = -sin(t * .pi * 6)*0.14*fade
-            p.surprise=0.7*fade;p.mouth=max(0,sin(t * .pi * 6))*0.45*fade
+        switch kind {
+        case .giggle:
+            p.y=beat*0.045*fade;p.roll=wave*0.055*fade;p.smile=0.85*fade;p.laugh=beat*0.35*fade;p.blink=0.45*fade
+        case .zoom:
+            p.x=wave*0.14*fade;p.y=abs(wave)*0.06*fade;p.roll = -wave*0.16*fade
+            p.smile=0.9*fade;p.laugh=beat*0.42*fade;p.blink=0.3*fade
+        case .wave:
+            p.wave=fade*(0.7+wave*0.3);p.roll=wave*0.065*fade;p.y=beat*0.025*fade;p.smile=0.7*fade;p.blink=max(0,sin(t * .pi * 2))*0.3*fade
+        case .twirl:
+            p.turn=2 * .pi * t*t*(3-2*t);p.y=sin(t * .pi)*0.10;p.roll=sin(t * .pi * 2)*0.08*fade;p.wave=0.5*fade;p.smile=0.85*fade
         }
         return p
     }
@@ -64,19 +76,12 @@ public enum PluginAvatarReactionCatalog {
 
 #if canImport(AVFoundation)
 import AVFoundation
-/// Two pre-rendered local UI sounds, not a speech provider or a microphone.
-/// A single owner at a time prevents duplicate avatar sounds within a process.
+/// Native previews remain silent unless the embedding product connects its own
+/// selected-voice service. Never substitute a bundled stranger's voice.
 @MainActor final class PluginAvatarReactionAudio {
     static let shared=PluginAvatarReactionAudio()
-    private var player:AVAudioPlayer?
-    private var owner:UUID?
-    private var lastPlay=Date.distantPast
-    func play(_ kind:PluginAvatarReaction,owner:UUID,enabled:Bool)->Double {
-        guard enabled,Date().timeIntervalSince(lastPlay)>=1 else { return PluginAvatarReactionCatalog.clips[kind.rawValue]?.duration ?? 1.3 }
-        stop();self.owner=owner;lastPlay=Date()
-        guard let url=Bundle.module.url(forResource:"avatar-"+kind.rawValue,withExtension:"wav"),let p=try? AVAudioPlayer(contentsOf:url) else { return 1.3 }
-        player=p;p.volume=0.55;p.prepareToPlay();p.play();return min(3,max(0.3,p.duration))
-    }
-    func stop(owner:UUID?=nil) { guard owner==nil || owner==self.owner else{return};player?.stop();player=nil;self.owner=nil }
+    func play(_ kind:PluginAvatarReaction,owner:UUID,enabled:Bool)->Double {kind.duration}
+    var isPlaying:Bool {false}
+    func stop(owner:UUID?=nil) {}
 }
 #endif

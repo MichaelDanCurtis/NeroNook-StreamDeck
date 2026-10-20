@@ -39,6 +39,8 @@ public enum PluginSpeechContract {
     @Published public private(set) var selectedKey = ""
     @Published public private(set) var status = "Allow a speech provider in Modules → Actions and connections."
     @Published public private(set) var active = false
+    @Published public private(set) var avatarPlayback: PluginAvatarPlayback?
+    private var reactionDeadline: Task<Void,Never>?
     private var request: UUID?
     private var selected: PluginCatalogEntry?
     private var pending: [String] = []
@@ -55,6 +57,20 @@ public enum PluginSpeechContract {
         providers = available; selected = available.first { $0.address.key == selectedKey }
         if selected == nil && !active { status = "Choose an allowed speech provider." }
     }
+    public func react(_ kind: PluginAvatarReaction, id: UUID) throws {
+        guard kind.hasAudio else { return }
+        // Only a unique already-allowed provider can be selected implicitly.
+        // A deliberate saved selection is never replaced by another provider.
+        if selectedKey.isEmpty, providers.count == 1 { select(providers[0].address.key) }
+        try read(kind.spokenText)
+        avatarPlayback = .init(id:id,kind:kind)
+        reactionDeadline = Task { [weak self] in
+            try? await Task.sleep(for:.seconds(45))
+            guard !Task.isCancelled,self?.avatarPlayback?.id == id else {return}
+            self?.stop()
+        }
+    }
+    public func stopReaction(_ id: UUID) { if avatarPlayback?.id == id { stop() } }
     public func read(_ text: String) throws {
         guard !active, let selected, providers.contains(selected), send != nil else { throw ModuleProblem("Choose an allowed speech provider first.") }
         pending = try PluginSpeechContract.segments(text); active = true; next()
@@ -69,13 +85,14 @@ public enum PluginSpeechContract {
         guard message.requestID == request else { return }
         if message.operation == .failure { retire(message.error ?? "Speech provider unavailable."); return }
         guard let update = message.update else { return }
+        if let meter=update.speech, (try? meter.validate()) != nil, avatarPlayback != nil { avatarPlayback?.speech=meter }
         status = update.message.isEmpty ? update.phase.rawValue : update.message
         guard update.phase.terminal else { return }
         request = nil
         if update.phase == .succeeded, update.values["spoken"] == .boolean(true), !pending.isEmpty { next() }
         else { retire(update.phase == .succeeded ? "Reading finished" : status) }
     }
-    private func retire(_ text: String) { request = nil; pending = []; active = false; status = text }
+    private func retire(_ text: String) { reactionDeadline?.cancel(); reactionDeadline=nil; avatarPlayback=nil; request = nil; pending = []; active = false; status = text }
     public func stop() {
         let id = request; retire("Reading stopped")
         if let id { send?(.init(.cancel, requestID: id)) }

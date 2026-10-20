@@ -19,7 +19,7 @@ private typealias AvatarScalar=Float
     private let persona:PluginAvatarPersona,style:String
     private var morphs:[SCNMorpher]=[]
     private var eyes:[(node:SCNNode,forward:SIMD3<Float>,scale:SIMD3<Float>)]=[]
-    private var joints:[(SCNNode,SCNQuaternion)]=[]
+    private var joints:[(SCNNode,simd_quatf)]=[]
     private var currentTheme="",speech=PluginAvatarSpeech(),expression=PluginExpressionPose(),gaze=PluginAvatarGaze()
     private var reduced=false,opaque=false,reactions=true,sounds=true
     private var reaction:PluginAvatarReactionPose = .init()
@@ -43,7 +43,7 @@ private typealias AvatarScalar=Float
                 if node.name?.hasPrefix("PupilGimbal_")==true,let iris=node.childNodes.first(where:{$0.name?.hasPrefix("Iris_")==true}) {
                     self.eyes.append((node,simd_normalize(iris.simdPosition),node.simdScale))
                 }
-                if node.name?.hasPrefix("Articulation_")==true {self.joints.append((node,node.orientation))}
+                if node.name?.hasPrefix("Articulation_")==true {self.joints.append((node,node.simdOrientation))}
                 for material in node.geometry?.materials ?? [] {
                     material.lightingModel = .physicallyBased
                     if persona == .nero && self.style == "elemental",material.name?.hasPrefix("AvatarBody")==true {material.transparent.contents=AvatarColor.white;material.transparency=0.92;material.roughness.contents=0.18;material.metalness.contents=0.25;material.transparencyMode = .singleLayer}
@@ -69,7 +69,8 @@ private typealias AvatarScalar=Float
         let requestedExpression=(try? expression.validate()) != nil ? expression:PluginExpressionPose()
         guard theme != currentTheme || speech != self.speech || requestedExpression != self.expression || reducedMotion != reduced || opaque != self.opaque || reactions != self.reactions || sounds != self.sounds else { return }
         self.speech=speech;self.expression=(try? expression.validate()) != nil ? expression:.init();reduced=reducedMotion;self.opaque=opaque;self.reactions=reactions;self.sounds=sounds
-        if speech.speaking || !reactions || reducedMotion { stopReaction() }
+        if speech.speaking || !reactions || reducedMotion {stopReaction()}
+        if !sounds {PluginAvatarReactionAudio.shared.stop(owner:audioOwner)}
         if style=="elemental",currentTheme != theme {
             currentTheme=theme;let colors=PluginAvatarCatalog.palette(theme:theme)?.avatars[persona.rawValue] ?? [:]
             model.enumerateChildNodes {node,_ in
@@ -94,7 +95,7 @@ private typealias AvatarScalar=Float
         SCNTransaction.begin();SCNTransaction.animationDuration=animated ? 0.08:0
         let r=reduced ? PluginAvatarReactionPose():reaction
         let p=reduced ? PluginExpressionPose():expression
-        model.eulerAngles=SCNVector3(AvatarScalar((reduced ? 0:gaze.pitchDegrees * .pi/180)),AvatarScalar(reduced ? 0:gaze.yawDegrees * .pi/180),AvatarScalar((reduced ? 0:gaze.rollDegrees * .pi/180)+r.roll))
+        model.eulerAngles=SCNVector3(AvatarScalar((reduced ? 0:gaze.pitchDegrees * .pi/180)),AvatarScalar((reduced ? 0:gaze.yawDegrees * .pi/180)+r.turn),AvatarScalar((reduced ? 0:gaze.rollDegrees * .pi/180)+r.roll))
         model.position=SCNVector3(AvatarScalar((reduced ? 0:gaze.offsetX)+r.x),AvatarScalar((reduced ? 0:gaze.offsetY)+r.y),0)
         posture.eulerAngles=SCNVector3(AvatarScalar(p.pitch * .pi/180),0,AvatarScalar(p.roll * .pi/180));posture.position=SCNVector3(0,AvatarScalar(p.lift),0)
         let blink=r.blink
@@ -110,7 +111,12 @@ private typealias AvatarScalar=Float
         let mouth=PluginAvatarSpeech.mouthWeight(speech.level,speaking:speech.speaking,reducedMotion:reduced)
         let weights=["Speak":max(mouth,r.mouth),"Blink":blink,"Smile":r.smile,"Laugh":r.laugh,"Surprise":r.surprise]
         for morph in morphs {for (i,target) in morph.targets.enumerated(){morph.setWeight(weights[target.name ?? ""] ?? 0,forTargetAt:i)}}
-        for (joint,base) in joints {joint.orientation=base;let sign:Double=joint.name?.contains("_L_")==true ? -1:1;joint.eulerAngles.z += AvatarScalar(sign*(r.y*0.8+gaze.x*0.05))}
+        for (joint,base) in joints {
+            let sign:Double=joint.name?.contains("_L_")==true ? -1:1
+            let angle=sign*(r.y*0.8+gaze.x*0.05+r.wave*(joint.name?.contains("_Foot")==true ? 0.15:0.8))
+            let axis=simd_normalize(joint.parent?.simdConvertVector(SIMD3<Float>(0,0,1),from:model) ?? SIMD3<Float>(0,0,1))
+            joint.simdOrientation=simd_quatf(angle:Float(angle),axis:axis)*base
+        }
         if opaque {model.enumerateChildNodes {node,_ in node.geometry?.materials.forEach{$0.transparency=1}}}
         SCNTransaction.commit()
         #if canImport(AppKit) && !targetEnvironment(macCatalyst)
@@ -119,8 +125,16 @@ private typealias AvatarScalar=Float
         nativeView?.setNeedsDisplay()
         #endif
     }
+    var interactionAllowed:Bool {
+        guard reactions,!reduced,!speech.speaking,let view=nativeView,view.bounds.width>=80,view.window != nil,!view.isHidden else{return false}
+        #if canImport(AppKit) && !targetEnvironment(macCatalyst)
+        return !view.isHiddenOrHasHiddenAncestor && view.window?.isVisible==true && view.window?.occlusionState.contains(.visible)==true
+        #else
+        return true
+        #endif
+    }
     func react(_ kind:PluginAvatarReaction) {
-        guard reactions,!reduced,!speech.speaking,(nativeView?.bounds.width ?? 0) >= 80 else{return}
+        guard interactionAllowed else{return}
         stopReaction();reactionKind=kind;reactionStart=ProcessInfo.processInfo.systemUptime
         reactionDuration=PluginAvatarReactionAudio.shared.play(kind,owner:audioOwner,enabled:sounds)
         let timer=Timer(timeInterval:1/24,repeats:true) { [weak self] _ in MainActor.assumeIsolated {self?.reactionTick()} }
@@ -134,8 +148,9 @@ private typealias AvatarScalar=Float
         guard !view.isHiddenOrHasHiddenAncestor,view.window?.isVisible==true,view.window?.occlusionState.contains(.visible)==true else {stopReaction();return}
         #endif
         reaction = .sample(kind,elapsed:elapsed,duration:reactionDuration)
-        let amplitude=PluginAvatarReactionCatalog.level(kind,elapsed:elapsed)
-        reaction.mouth=amplitude*0.65;reaction.laugh=kind == .giggle ? amplitude*0.55:0;reaction.surprise=kind == .zoom ? amplitude*0.65:0
+        // Settings/native previews have no speech-provider connection. Remain
+        // silent instead of animating a mouth against an unrelated recording.
+        if kind.hasAudio {reaction.mouth=0;reaction.laugh=0;reaction.surprise=0}
         applyPose(animated:false)
     }
     func stopReaction(){reactionTimer?.invalidate();reactionTimer=nil;reactionKind=nil;reaction = .init();PluginAvatarReactionAudio.shared.stop(owner:audioOwner);applyPose(animated:false)}
@@ -161,18 +176,27 @@ private typealias AvatarScalar=Float
 }
 #if canImport(AppKit) && !targetEnvironment(macCatalyst)
 private final class CharacterSCNView:SCNView {
-    var poke:(()->Void)?
+    var play:((PluginAvatarReaction?)->Void)?
+    var canPlay:(()->Bool)?
     override func acceptsFirstMouse(for event:NSEvent?)->Bool{true}
-    override func mouseDown(with event:NSEvent){let p=convert(event.locationInWindow,from:nil);if bounds.width>=80,!hitTest(p,options:nil).isEmpty {poke?()}else{super.mouseDown(with:event)}}
-    override func accessibilityPerformPress()->Bool{guard bounds.width>=80 else{return false};poke?();return true}
+    override func mouseDown(with event:NSEvent){let p=convert(event.locationInWindow,from:nil);if bounds.width>=80,!hitTest(p,options:nil).isEmpty {play?(.giggle)}else{super.mouseDown(with:event)}}
+    override func accessibilityPerformPress()->Bool{guard canPlay?()==true else{return false};play?(.giggle);return true}
+    override func menu(for event:NSEvent)->NSMenu? {
+        guard bounds.width>=80 else{return nil}
+        let menu=NSMenu(title:"Play with avatar");menu.autoenablesItems=false
+        for (index,kind) in PluginAvatarReaction.allCases.enumerated(){let item=NSMenuItem(title:kind.title,action:#selector(choose(_:)),keyEquivalent:"");item.target=self;item.tag=index;item.isEnabled=canPlay?()==true;menu.addItem(item)}
+        menu.addItem(.separator());let stop=NSMenuItem(title:"Stop",action:#selector(choose(_:)),keyEquivalent:"");stop.target=self;stop.tag=99;menu.addItem(stop);return menu
+    }
+    @objc private func choose(_ item:NSMenuItem){play?(PluginAvatarReaction.allCases.indices.contains(item.tag) ? PluginAvatarReaction.allCases[item.tag]:nil)}
 }
+
 struct PluginAvatarSurface:NSViewRepresentable {
     let persona:PluginAvatarPersona;let theme:String;let speech:PluginAvatarSpeech;var expression:PluginExpressionPose = .init();let reducedMotion:Bool;let opaque:Bool
     var style:String="elemental";var reactions:Bool=true;var sounds:Bool=true
     func makeCoordinator()->PluginAvatarScene{PluginAvatarScene(persona:persona,style:style)}
     func makeNSView(context:Context)->SCNView {
         let view=CharacterSCNView();view.scene=context.coordinator.scene;view.backgroundColor = .clear;view.antialiasingMode = .multisampling4X;view.preferredFramesPerSecond=24;view.isPlaying=false;view.rendersContinuously=false
-        view.poke={ [weak scene=context.coordinator] in scene?.react(.giggle) };view.setAccessibilityRole(.button);view.setAccessibilityLabel("Play with "+persona.rawValue.capitalized);context.coordinator.attach(view);return view
+        view.play={ [weak scene=context.coordinator] kind in if let kind {scene?.react(kind)}else{scene?.stopReaction()} };view.canPlay={ [weak scene=context.coordinator] in scene?.interactionAllowed == true };view.setAccessibilityRole(.button);view.setAccessibilityLabel("Play with "+persona.rawValue.capitalized);context.coordinator.attach(view);return view
     }
     func updateNSView(_ view:SCNView,context:Context){context.coordinator.update(theme:theme,speech:speech,expression:expression,reducedMotion:reducedMotion,opaque:opaque,reactions:reactions,sounds:sounds);context.coordinator.followPointer(in:view,reducedMotion:reducedMotion)}
     static func dismantleNSView(_ view:SCNView,coordinator:PluginAvatarScene){coordinator.stopPointer();view.isPlaying=false;view.scene=nil}

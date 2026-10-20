@@ -17,6 +17,10 @@ public struct PluginCustomView: Codable, Equatable, Sendable {
     public var frames: [PluginViewFrame]?
     /// The view supplies its own title/navigation. Hosts may omit a duplicate header.
     public var ownsChrome: Bool?
+    /// Opt in to the SDK's document-bound, fixed character gestures. This adds
+    /// one reserved event without consuming application menu/event slots.
+    public var avatarReactions: Bool?
+    public var avatarPlayback: PluginAvatarPlayback?
     public init(entry: String, revision: String, state: [String: PluginValue] = [:], events: [PluginViewEventDefinition] = [], resourceNamespaces: [String]? = nil, frames: [PluginViewFrame]? = nil, ownsChrome: Bool? = nil) {
         self.entry = entry; self.revision = revision; self.state = state; self.events = events; self.resourceNamespaces = resourceNamespaces; self.frames = frames
         self.ownsChrome = ownsChrome
@@ -29,7 +33,9 @@ public struct PluginCustomView: Codable, Equatable, Sendable {
         guard (resourceNamespaces?.count ?? 0) <= 4, resourceNamespaces?.allSatisfy({ ModulePackage.validKey($0) && !$0.contains("/") }) ?? true else { throw ModuleProblem("Invalid resource namespaces.") }
         guard (frames?.count ?? 0) <= 2 else { throw ModuleProblem("Too many embedded documents.") }
         for frame in frames ?? [] { try frame.validate() }
-        for event in events { guard ModulePackage.validKey(event.id) else { throw ModuleProblem("Invalid view event.") }; try event.input.validate() }
+        try avatarPlayback?.validate()
+        guard avatarPlayback == nil || avatarReactions == true else { throw ModuleProblem("Avatar playback requires an opted-in view.") }
+        for event in events { guard ModulePackage.validKey(event.id),event.id != PluginAvatarPlayback.event else { throw ModuleProblem("Invalid view event.") }; try event.input.validate() }
     }
     public func validate(_ resource: PluginViewResourceRequest) throws {
         try validate()
@@ -39,6 +45,10 @@ public struct PluginCustomView: Codable, Equatable, Sendable {
     }
     public func validate(_ event: PluginViewEvent) throws {
         try validate()
+        if event.name == PluginAvatarPlayback.event, avatarReactions == true {
+            guard event.revision == revision, ModulePackage.validKey(event.panelID) else { throw ModuleProblem("This avatar view changed.") }
+            try PluginAvatarPlayback.validate(event.values); return
+        }
         guard event.revision == revision, ModulePackage.validKey(event.panelID),
               let definition = events.first(where: { $0.id == event.name }) else { throw ModuleProblem("This view changed or the event is unavailable.") }
         try definition.input.validate(event.values)
