@@ -7,8 +7,10 @@ public enum PluginAvatarPersona: String, Codable, Sendable { case nero, ember }
 public struct PluginAvatarSpeech: Codable, Equatable, Sendable {
     public var speaking: Bool
     public var level: Double
-    public init(speaking: Bool = false, level: Double = 0) {
+    public var expression: PluginExpressionPose?
+    public init(speaking: Bool = false, level: Double = 0, expression: PluginExpressionPose? = nil) {
         self.speaking = speaking
+        self.expression = expression
         self.level = Self.weight(level, speaking: speaking)
     }
     public static func weight(_ value: Double, speaking: Bool, reducedMotion: Bool = false) -> Double {
@@ -21,6 +23,7 @@ public struct PluginAvatarSpeech: Codable, Equatable, Sendable {
         sqrt(min(1, weight(value, speaking: speaking, reducedMotion: reducedMotion) * 8))
     }
     public func validate() throws {
+        try expression?.validate()
         guard level.isFinite, (0...1).contains(level), speaking || level == 0 else { throw ModuleProblem("Invalid avatar speech state.") }
     }
     /// Exact inverse of the bundled GLB Speak clip's two rising segments.

@@ -15,6 +15,8 @@ private typealias AvatarScalar = Float
 @MainActor final class PluginAvatarScene {
     let scene = SCNScene()
     private let model = SCNNode()
+    private let posture = SCNNode()
+    private var lastExpression = PluginExpressionPose()
     private var mouth: SCNMorpher?
     private var flex: SCNMorpher?
     private var currentTheme = ""
@@ -28,6 +30,7 @@ private typealias AvatarScalar = Float
     #endif
     init(persona: PluginAvatarPersona, style: String = "elemental") {
         self.persona = persona
+        model.name = "NookAvatarGaze"; posture.name = "NookAvatarExpression"
         self.style = PluginAvatarStyles.model(style: style, persona: persona) == nil ? "elemental" : style
         if let url = PluginAvatarStyles.model(style: style, persona: persona) ?? PluginAvatarCatalog.model(persona: persona), let source = try? SCNScene(url: url) {
             for node in source.rootNode.childNodes { node.removeFromParentNode(); model.addChildNode(node) }
@@ -53,7 +56,7 @@ private typealias AvatarScalar = Float
                     }
                 }
             }
-            scene.rootNode.addChildNode(model)
+            scene.rootNode.addChildNode(posture); posture.addChildNode(model)
             model.enumerateChildNodes { node, _ in
                 if node.name?.hasPrefix("Articulation_") == true { joints.append((node, node.eulerAngles)) }
                 if node.name?.contains("_Eye_") == true, node.geometry != nil, let parent=node.parent {
@@ -75,7 +78,15 @@ private typealias AvatarScalar = Float
             light.position = position; scene.rootNode.addChildNode(light)
         }
     }
-    func update(theme: String, speech: PluginAvatarSpeech, reducedMotion: Bool, opaque: Bool) {
+    func update(theme: String, speech: PluginAvatarSpeech, expression: PluginExpressionPose = .init(), reducedMotion: Bool, opaque: Bool) {
+        let pose = !reducedMotion && (try? expression.validate()) != nil ? expression : .init()
+        if pose != lastExpression {
+            lastExpression = pose
+            SCNTransaction.begin(); SCNTransaction.animationDuration = pose == .init() ? 0 : 0.24
+            posture.eulerAngles = SCNVector3(AvatarScalar(pose.pitch * .pi / 180), 0, AvatarScalar(pose.roll * .pi / 180))
+            posture.position = SCNVector3(0, AvatarScalar(pose.lift), 0)
+            SCNTransaction.commit()
+        }
         SCNTransaction.begin(); SCNTransaction.animationDuration = speech.speaking && !reducedMotion && speech.level > 0 ? 0.09 : 0
         if style == "elemental" && currentTheme != theme {
             currentTheme = theme
@@ -145,7 +156,7 @@ private typealias AvatarScalar = Float
 
 #if canImport(AppKit) && !targetEnvironment(macCatalyst)
 struct PluginAvatarSurface: NSViewRepresentable {
-    let persona: PluginAvatarPersona; let theme: String; let speech: PluginAvatarSpeech; let reducedMotion: Bool; let opaque: Bool
+    let persona: PluginAvatarPersona; let theme: String; let speech: PluginAvatarSpeech; var expression: PluginExpressionPose = .init(); let reducedMotion: Bool; let opaque: Bool
     var style: String = "elemental"
     func makeCoordinator() -> PluginAvatarScene { PluginAvatarScene(persona: persona, style: style) }
     func makeNSView(context: Context) -> SCNView {
@@ -154,18 +165,18 @@ struct PluginAvatarSurface: NSViewRepresentable {
         return view
     }
     func updateNSView(_ view: SCNView, context: Context) {
-        context.coordinator.update(theme: theme, speech: speech, reducedMotion: reducedMotion, opaque: opaque)
+        context.coordinator.update(theme: theme, speech: speech, expression: expression, reducedMotion: reducedMotion, opaque: opaque)
         context.coordinator.followPointer(in:view,reducedMotion:reducedMotion)
     }
     static func dismantleNSView(_ view: SCNView, coordinator: PluginAvatarScene) { coordinator.stopPointer(); view.isPlaying = false; view.scene = nil }
 }
 #else
 struct PluginAvatarSurface: UIViewRepresentable {
-    let persona: PluginAvatarPersona; let theme: String; let speech: PluginAvatarSpeech; let reducedMotion: Bool; let opaque: Bool
+    let persona: PluginAvatarPersona; let theme: String; let speech: PluginAvatarSpeech; var expression: PluginExpressionPose = .init(); let reducedMotion: Bool; let opaque: Bool
     var style: String = "elemental"
     func makeCoordinator() -> PluginAvatarScene { PluginAvatarScene(persona: persona, style: style) }
     func makeUIView(context: Context) -> SCNView { let view = SCNView(); view.scene = context.coordinator.scene; view.backgroundColor = .clear; view.isOpaque = false; view.isPlaying = false; return view }
-    func updateUIView(_ view: SCNView, context: Context) { context.coordinator.update(theme: theme, speech: speech, reducedMotion: reducedMotion, opaque: opaque) }
+    func updateUIView(_ view: SCNView, context: Context) { context.coordinator.update(theme: theme, speech: speech, expression: expression, reducedMotion: reducedMotion, opaque: opaque) }
     static func dismantleUIView(_ view: SCNView, coordinator: PluginAvatarScene) { view.scene = nil }
 }
 #endif

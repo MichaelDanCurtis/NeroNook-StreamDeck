@@ -33,10 +33,12 @@ html[data-nook-contrast="true"] .nook-presence::after,html[data-nook-reduce-tran
    const v=item.viewer;if(!item.ready||!v?.loaded)return;
    const {x,y}=item.gaze,stamp=x.toFixed(3)+','+y.toFixed(3);if(stamp===item.gazeStamp)return;item.gazeStamp=stamp;
    const bodyX=Math.sin(x*Math.PI/2),bodyY=Math.sin(y*Math.PI/2);
-   v.orientation=`${(-bodyX*4).toFixed(3)}deg ${(-bodyY*16).toFixed(3)}deg ${(bodyX*26).toFixed(3)}deg`;
    // Translate the decorative viewer, not its hit target. Its unchanged outer
    // bounds keep pointer direction stable rather than chasing the moving body.
-   v.style.transform=`translate3d(${(bodyX*3.5).toFixed(3)}%,${(-bodyY*2.25).toFixed(3)}%,0)`;
+   // The bundled viewer's orientation setter touches an inactive AR scene.
+   // Public CSS transforms keep decorative body movement independent of the
+   // actual eye clips without entering that failing AR lifecycle.
+   v.style.transform=`translate3d(${(bodyX*3.5).toFixed(3)}%,${(-bodyY*2.25).toFixed(3)}%,0) rotateX(${(-bodyY*16).toFixed(3)}deg) rotateY(${(bodyX*26).toFixed(3)}deg) rotateZ(${(-bodyX*4).toFixed(3)}deg)`;
    // Constant eye translation clips blend with the original pose. They share
    // neither morph channels nor time progression with the spoken-mouth clip.
    if(typeof v.appendAnimation==='function'&&v.availableAnimations?.includes('LookLeft')){
@@ -45,6 +47,12 @@ html[data-nook-contrast="true"] .nook-presence::after,html[data-nook-reduce-tran
        v.appendAnimation(name,{weight:w,timeScale:0,time:0,fade:false});
      v.pause();v.currentTime=t;
    }
+ }
+ function expression(item){
+   const values=(item.element.dataset.nookExpression||'0,0,0').split(',').map(Number);
+   const allowed=!document.hidden&&!reduced()&&item.visible&&values.length===3&&values.every(Number.isFinite);
+   const [pitch,roll,lift]=allowed?[Math.min(5,Math.max(-5,values[0])),Math.min(6,Math.max(-6,values[1])),Math.min(.03,Math.max(-.03,values[2]))]:[0,0,0];
+   if(item.posture){item.posture.style.transition=allowed&&(pitch||roll||lift)?'transform 240ms ease-out':'none';item.posture.style.transform=`translateY(${-lift*100}%) rotateX(${pitch}deg) rotateZ(${roll}deg)`;}
  }
  function resetGaze(item){item.gaze={x:0,y:0};gazePose(item);}
  function announce(){
@@ -109,13 +117,13 @@ html[data-nook-contrast="true"] .nook-presence::after,html[data-nook-reduce-tran
  }
  function camera(item){item.viewer.setAttribute('camera-orbit',item.style==='illustration.monoline'?'0deg 90deg 4m':'15deg 77deg auto');}
  function sync(item){
-   scene(item);const next=style(item.element);
+   scene(item);expression(item);const next=style(item.element);
    if(item.viewer&&next!==item.style){item.style=next;item.ready=false;item.gazeStamp='';camera(item);item.viewer.src=next==='elemental'?window.__nookAvatarModels[persona(item.element)]:base+'avatar-'+next.slice(13)+'-'+persona(item.element)+'.glb';}
  }
  function attach(el){
    if(el.dataset.nookAvatarMounted)return;el.dataset.nookAvatarMounted='true';
    // The span remains decorative. Its owner supplies accessible status text.
-   const item={element:el,viewer:null,stamp:0,visible:true,level:0,frame:0,ready:false,gaze:{x:0,y:0},gazeStamp:''};members.add(item);
+   const item={element:el,viewer:null,posture:null,stamp:0,visible:true,level:0,frame:0,ready:false,gaze:{x:0,y:0},gazeStamp:''};members.add(item);
    load().then(()=>{
      if(!el.isConnected){members.delete(item);return;}
      const p=persona(el),v=document.createElement('nook-avatar-model');item.viewer=v;
@@ -124,16 +132,19 @@ html[data-nook-contrast="true"] .nook-presence::after,html[data-nook-reduce-tran
      v.setAttribute('poster',base+'elemental-'+String(palette(item)?.index||1).padStart(2,'0')+'-'+p+'.png');
      item.style=style(el);camera(item);v.src=item.style==='elemental'?window.__nookAvatarModels[p]:base+'avatar-'+item.style.slice(13)+'-'+p+'.glb';v.addEventListener('load',async()=>{paint(item);await mouth(item);if(!el.isConnected)return;item.ready=true;gazePose(item);track(pointer);});
      v.addEventListener('error',()=>{v.remove();el.style.setProperty('background-image','url('+base+'elemental-01-'+p+'.png)','important');el.style.backgroundSize='contain';});
-     el.replaceChildren(v);scene(item);observer.observe(el);
+     const posture=document.createElement('span');posture.style.cssText='display:block;width:100%;height:100%;pointer-events:none';item.posture=posture;posture.append(v);
+     el.replaceChildren(posture);scene(item);expression(item);observer.observe(el);
    }).catch(()=>{el.style.setProperty('background-image','url('+base+'elemental-01-'+persona(el)+'.png)','important');el.style.backgroundSize='contain';});
  }
- const observer=new IntersectionObserver(entries=>{for(const e of entries){const item=[...members].find(i=>i.element===e.target);if(item){item.visible=e.isIntersecting;mouth(item);if(!item.visible)resetGaze(item);}}announce();track(pointer);});
+ const observer=new IntersectionObserver(entries=>{for(const e of entries){const item=[...members].find(i=>i.element===e.target);if(item){item.visible=e.isIntersecting;mouth(item);expression(item);if(!item.visible)resetGaze(item);}}announce();track(pointer);});
  function scan(){document.querySelectorAll(selector).forEach(attach);for(const item of members)if(!item.element.isConnected){cancelAnimationFrame(item.frame);observer.unobserve(item.element);members.delete(item);}if(!members.size){cancelAnimationFrame(gazeFrame);gazeFrame=0;}announce();}
- const changes=new MutationObserver(entries=>{if(entries.some(e=>e.type==='childList'))scan();for(const e of entries){const item=[...members].find(i=>i.element===e.target);if(item)mouth(item);}});
- changes.observe(document.documentElement,{childList:true,subtree:true,attributes:true,attributeFilter:['data-nook-speech-level','data-nook-speaking']});
- document.addEventListener('visibilitychange',()=>{members.forEach(mouth);announce();track(document.hidden?null:pointer);});
+ const changes=new MutationObserver(entries=>{if(entries.some(e=>e.type==='childList'))scan();for(const e of entries){const item=[...members].find(i=>i.element===e.target);if(item){mouth(item);expression(item);}}});
+ changes.observe(document.documentElement,{childList:true,subtree:true,attributes:true,attributeFilter:['data-nook-speech-level','data-nook-speaking','data-nook-expression']});
+ document.addEventListener('visibilitychange',()=>{members.forEach(i=>{mouth(i);expression(i);});announce();track(document.hidden?null:pointer);});
  window.__neroAppearanceAPI?.onChange(value=>{appearance=value;members.forEach(i=>{sync(i);paint(i);mouth(i);});announce();track(pointer);});
- Object.defineProperty(window,'NookAvatar',{value:Object.freeze({get wantsPointer(){return !document.hidden&&!reduced()&&[...members].some(i=>i.visible);},pointer:track,speech(element,level,speaking){
+ Object.defineProperty(window,'NookAvatar',{value:Object.freeze({get wantsPointer(){return !document.hidden&&!reduced()&&[...members].some(i=>i.visible);},pointer:track,expression(element,pose){
+   if(!element)return;const p=pose||{};element.dataset.nookExpression=[p.pitch,p.roll,p.lift].map(x=>Number.isFinite(x)?x:0).join(',');
+ },speech(element,level,speaking){
    if(!element)return;element.dataset.nookSpeaking=String(!!speaking);element.dataset.nookSpeechLevel=String(weight(level,!!speaking));
  }})});
  // Old/standalone web hosts still get in-window tracking. The native adapter

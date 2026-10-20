@@ -100,9 +100,9 @@ public struct PluginSeasonalComposition: Codable, Equatable, Sendable {
     }
     /// Opt-in adapter for an already resolved passive appearance snapshot.
     /// Other holidays retain their existing fallback; an invalid delivery or
-    /// Off selection cannot become an active rich composition here.
+    /// Still intensity retains scenery with no animated overlay.
     public static func resolve(scene: PluginSeasonalScene?, layout: PluginSeasonalSurfaceLayout = .voice) -> Self? {
-        guard let scene, scene.holiday == .christmas, scene.intensity != .off,
+        guard let scene, scene.holiday == .christmas,
               (try? scene.validate()) != nil else { return nil }
         return try? christmas(day: scene.day, year: scene.year, intensity: scene.intensity, layout: layout)
     }

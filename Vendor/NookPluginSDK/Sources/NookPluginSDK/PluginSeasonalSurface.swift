@@ -27,7 +27,7 @@ public struct PluginSeasonalSurface<Content: View>: View {
         self.composition = composition; self.content = content()
     }
     private var accepted: PluginSeasonalComposition? {
-        guard let composition, composition.scene.intensity != .off,
+        guard let composition,
               (try? composition.validate()) != nil else { return nil }
         return composition
     }

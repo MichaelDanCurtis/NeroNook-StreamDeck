@@ -1,0 +1,1132 @@
+{
+  "version": 1,
+  "coordinateSpace": "normalized top-left per cropped image",
+  "authorship": "Original locally authored Blender geometry/materials. No external art, cloud generation, avatar or UI pixels.",
+  "lightTreatment": "Light exposure -0.10 EV; Dark +0.25 EV, same geometry/softboxes; PNG alpha is straight RGBA.",
+  "animation": "Static scenery sprites. Separate renderer-owned finite entrance/twinkle at listed visible anchors; hidden/Still/Reduce Motion must settle. No built-in timer or loop.",
+  "assets": [
+    {
+      "id": "evergreen",
+      "files": {
+        "light": "seasonal-evergreen-light.png",
+        "dark": "seasonal-evergreen-dark.png"
+      },
+      "sha256": {
+        "light": "575e0e19dac5f5ccf9433efa447b8a12bd9d9d10f137a676c002104f31ca70ed",
+        "dark": "ba98907a5fb54d5da6ccf6993d7ca6f5b47413da18c924c2874cc8c26a247a25"
+      },
+      "width": 530,
+      "height": 717,
+      "aspectRatio": 0.739191,
+      "fit": "contain",
+      "contentRect": {
+        "x": 0.024528,
+        "y": 0.02371,
+        "width": 0.950943,
+        "height": 0.95258
+      },
+      "baselineY": 0.97629,
+      "centerX": 0.5,
+      "overlayAnchors": [
+        {
+          "x": 0.891303,
+          "y": 0.842315,
+          "radius": 0.005456,
+          "kind": "light",
+          "color": "#FFD796"
+        },
+        {
+          "x": 0.137641,
+          "y": 0.755511,
+          "radius": 0.005456,
+          "kind": "light",
+          "color": "#FFD796"
+        },
+        {
+          "x": 0.789148,
+          "y": 0.769282,
+          "radius": 0.005456,
+          "kind": "light",
+          "color": "#FFD796"
+        },
+        {
+          "x": 0.26819,
+          "y": 0.608259,
+          "radius": 0.005456,
+          "kind": "light",
+          "color": "#FFD796"
+        },
+        {
+          "x": 0.644065,
+          "y": 0.672557,
+          "radius": 0.005456,
+          "kind": "light",
+          "color": "#FFD796"
+        },
+        {
+          "x": 0.414084,
+          "y": 0.485526,
+          "radius": 0.005456,
+          "kind": "light",
+          "color": "#FFD796"
+        },
+        {
+          "x": 0.509824,
+          "y": 0.552618,
+          "radius": 0.005456,
+          "kind": "light",
+          "color": "#FFD796"
+        },
+        {
+          "x": 0.362145,
+          "y": 0.380263,
+          "radius": 0.005456,
+          "kind": "light",
+          "color": "#FFD796"
+        },
+        {
+          "x": 0.573988,
+          "y": 0.39308,
+          "radius": 0.005456,
+          "kind": "light",
+          "color": "#FFD796"
+        },
+        {
+          "x": 0.576668,
+          "y": 0.289799,
+          "radius": 0.005456,
+          "kind": "light",
+          "color": "#FFD796"
+        },
+        {
+          "x": 0.49878,
+          "y": 0.267546,
+          "radius": 0.005456,
+          "kind": "light",
+          "color": "#FFD796"
+        },
+        {
+          "x": 0.453027,
+          "y": 0.153135,
+          "radius": 0.005456,
+          "kind": "light",
+          "color": "#FFD796"
+        }
+      ]
+    },
+    {
+      "id": "garland",
+      "files": {
+        "light": "seasonal-garland-light.png",
+        "dark": "seasonal-garland-dark.png"
+      },
+      "sha256": {
+        "light": "8971c3632421e64509db915fe1175cea89af984d52733ba6dff7bd4e8ffde545",
+        "dark": "14226a8096a4798ea6ddfd32f1027f7e50493669b5d52ebbacee8f0e5b609f9f"
+      },
+      "width": 1335,
+      "height": 235,
+      "aspectRatio": 5.680851,
+      "fit": "contain",
+      "contentRect": {
+        "x": 0.02397,
+        "y": 0.025532,
+        "width": 0.95206,
+        "height": 0.948936
+      },
+      "baselineY": 0.974468,
+      "centerX": 0.5,
+      "overlayAnchors": [
+        {
+          "x": 0.092112,
+          "y": 0.320017,
+          "radius": 0.023802,
+          "kind": "light",
+          "color": "#FFD796"
+        },
+        {
+          "x": 0.22841,
+          "y": 0.560758,
+          "radius": 0.023802,
+          "kind": "light",
+          "color": "#FFD796"
+        },
+        {
+          "x": 0.296559,
+          "y": 0.645976,
+          "radius": 0.023802,
+          "kind": "light",
+          "color": "#FFD796"
+        },
+        {
+          "x": 0.364708,
+          "y": 0.707757,
+          "radius": 0.023802,
+          "kind": "light",
+          "color": "#FFD796"
+        },
+        {
+          "x": 0.432858,
+          "y": 0.746102,
+          "radius": 0.023802,
+          "kind": "light",
+          "color": "#FFD796"
+        },
+        {
+          "x": 0.501007,
+          "y": 0.76101,
+          "radius": 0.023802,
+          "kind": "light",
+          "color": "#FFD796"
+        },
+        {
+          "x": 0.569156,
+          "y": 0.752483,
+          "radius": 0.023802,
+          "kind": "light",
+          "color": "#FFD796"
+        },
+        {
+          "x": 0.637305,
+          "y": 0.720519,
+          "radius": 0.023802,
+          "kind": "light",
+          "color": "#FFD796"
+        },
+        {
+          "x": 0.705454,
+          "y": 0.665121,
+          "radius": 0.023802,
+          "kind": "light",
+          "color": "#FFD796"
+        },
+        {
+          "x": 0.773603,
+          "y": 0.586284,
+          "radius": 0.023802,
+          "kind": "light",
+          "color": "#FFD796"
+        },
+        {
+          "x": 0.841751,
+          "y": 0.484014,
+          "radius": 0.023802,
+          "kind": "light",
+          "color": "#FFD796"
+        },
+        {
+          "x": 0.9099,
+          "y": 0.358305,
+          "radius": 0.023802,
+          "kind": "light",
+          "color": "#FFD796"
+        }
+      ]
+    },
+    {
+      "id": "wreath",
+      "files": {
+        "light": "seasonal-wreath-light.png",
+        "dark": "seasonal-wreath-dark.png"
+      },
+      "sha256": {
+        "light": "c17f25f1d72eec7a21b3b69326b708d90326f1c5f85b1bbab50839998747ae05",
+        "dark": "7bb845b71b0226d7466739d5b6447a876b6b024d8c76c6d7dc92da78d55e3d6f"
+      },
+      "width": 576,
+      "height": 587,
+      "aspectRatio": 0.981261,
+      "fit": "contain",
+      "contentRect": {
+        "x": 0.024306,
+        "y": 0.02385,
+        "width": 0.951389,
+        "height": 0.9523
+      },
+      "baselineY": 0.97615,
+      "centerX": 0.5,
+      "overlayAnchors": [
+        {
+          "x": 0.900161,
+          "y": 0.49818,
+          "radius": 0.010913,
+          "kind": "light",
+          "color": "#FFD796"
+        },
+        {
+          "x": 0.843008,
+          "y": 0.319951,
+          "radius": 0.010913,
+          "kind": "light",
+          "color": "#FFD796"
+        },
+        {
+          "x": 0.689697,
+          "y": 0.197385,
+          "radius": 0.010913,
+          "kind": "light",
+          "color": "#FFD796"
+        },
+        {
+          "x": 0.488902,
+          "y": 0.169394,
+          "radius": 0.010913,
+          "kind": "light",
+          "color": "#FFD796"
+        },
+        {
+          "x": 0.304374,
+          "y": 0.244867,
+          "radius": 0.010913,
+          "kind": "light",
+          "color": "#FFD796"
+        },
+        {
+          "x": 0.194699,
+          "y": 0.399839,
+          "radius": 0.010913,
+          "kind": "light",
+          "color": "#FFD796"
+        },
+        {
+          "x": 0.194699,
+          "y": 0.58511,
+          "radius": 0.010913,
+          "kind": "light",
+          "color": "#FFD796"
+        },
+        {
+          "x": 0.304374,
+          "y": 0.741856,
+          "radius": 0.010913,
+          "kind": "light",
+          "color": "#FFD796"
+        },
+        {
+          "x": 0.689697,
+          "y": 0.79557,
+          "radius": 0.010913,
+          "kind": "light",
+          "color": "#FFD796"
+        },
+        {
+          "x": 0.843008,
+          "y": 0.675483,
+          "radius": 0.010913,
+          "kind": "light",
+          "color": "#FFD796"
+        }
+      ]
+    },
+    {
+      "id": "gift",
+      "files": {
+        "light": "seasonal-gift-light.png",
+        "dark": "seasonal-gift-dark.png"
+      },
+      "sha256": {
+        "light": "5e7a64fb57437ab74cee2288152405e33ef5d94ae4b17ca135df5327c9f3b53d",
+        "dark": "9a67c36f95ff487933a9d3b977efabf1a8e84a4aeb75557520d5185198a8cae3"
+      },
+      "width": 475,
+      "height": 565,
+      "aspectRatio": 0.840708,
+      "fit": "contain",
+      "contentRect": {
+        "x": 0.023158,
+        "y": 0.024779,
+        "width": 0.953684,
+        "height": 0.975221
+      },
+      "baselineY": 1.0,
+      "centerX": 0.5,
+      "overlayAnchors": []
+    },
+    {
+      "id": "lantern",
+      "files": {
+        "light": "seasonal-lantern-light.png",
+        "dark": "seasonal-lantern-dark.png"
+      },
+      "sha256": {
+        "light": "eea8dd66d9ed9974197d20b0e102b90ac32932715c3d45db48619fde989a98d5",
+        "dark": "6fe618be6fa01f219275f1b2eaa2479139d252c7f527f30bf2b05855adec8053"
+      },
+      "width": 250,
+      "height": 605,
+      "aspectRatio": 0.413223,
+      "fit": "contain",
+      "contentRect": {
+        "x": 0.024,
+        "y": 0.02314,
+        "width": 0.952,
+        "height": 0.953719
+      },
+      "baselineY": 0.97686,
+      "centerX": 0.5,
+      "overlayAnchors": [
+        {
+          "x": 0.5,
+          "y": 0.504589,
+          "radius": 0.066406,
+          "kind": "candle",
+          "color": "#FFD796"
+        }
+      ]
+    },
+    {
+      "id": "bell",
+      "files": {
+        "light": "seasonal-bell-light.png",
+        "dark": "seasonal-bell-dark.png"
+      },
+      "sha256": {
+        "light": "15b547d453423d55218ab6e2d138458abaf36202c506dfe3ffcbbf7fb7408ced",
+        "dark": "ebb97688c0a4de9da22cef650b5b28dd80806f95bdf9bbf8d4769ab1d482dc5e"
+      },
+      "width": 478,
+      "height": 583,
+      "aspectRatio": 0.819897,
+      "fit": "contain",
+      "contentRect": {
+        "x": 0.023013,
+        "y": 0.024014,
+        "width": 0.953975,
+        "height": 0.957118
+      },
+      "baselineY": 0.981132,
+      "centerX": 0.5,
+      "overlayAnchors": []
+    },
+    {
+      "id": "lights",
+      "files": {
+        "light": "seasonal-lights-light.png",
+        "dark": "seasonal-lights-dark.png"
+      },
+      "sha256": {
+        "light": "ebb0654968993c241cb1632b952273ae2a5444a047c2800d6fec25c17929d311",
+        "dark": "233ccecf3265ffb6e9145f943673598d162b9db0588c87b9b5d6c06ed780bc89"
+      },
+      "width": 1146,
+      "height": 98,
+      "aspectRatio": 11.693878,
+      "fit": "contain",
+      "contentRect": {
+        "x": 0.02356,
+        "y": 0.020408,
+        "width": 0.95288,
+        "height": 0.959184
+      },
+      "baselineY": 0.979592,
+      "centerX": 0.5,
+      "overlayAnchors": [
+        {
+          "x": 0.035746,
+          "y": 0.279742,
+          "radius": 0.07152,
+          "kind": "light",
+          "color": "#FFD796"
+        },
+        {
+          "x": 0.138913,
+          "y": 0.512389,
+          "radius": 0.07152,
+          "kind": "light",
+          "color": "#FFD796"
+        },
+        {
+          "x": 0.190497,
+          "y": 0.607836,
+          "radius": 0.07152,
+          "kind": "light",
+          "color": "#FFD796"
+        },
+        {
+          "x": 0.293665,
+          "y": 0.756971,
+          "radius": 0.07152,
+          "kind": "light",
+          "color": "#FFD796"
+        },
+        {
+          "x": 0.396832,
+          "y": 0.850428,
+          "radius": 0.07152,
+          "kind": "light",
+          "color": "#FFD796"
+        },
+        {
+          "x": 0.448416,
+          "y": 0.876278,
+          "radius": 0.07152,
+          "kind": "light",
+          "color": "#FFD796"
+        },
+        {
+          "x": 0.551584,
+          "y": 0.886221,
+          "radius": 0.07152,
+          "kind": "light",
+          "color": "#FFD796"
+        },
+        {
+          "x": 0.603168,
+          "y": 0.870314,
+          "radius": 0.07152,
+          "kind": "light",
+          "color": "#FFD796"
+        },
+        {
+          "x": 0.706335,
+          "y": 0.796742,
+          "radius": 0.07152,
+          "kind": "light",
+          "color": "#FFD796"
+        },
+        {
+          "x": 0.809503,
+          "y": 0.667494,
+          "radius": 0.07152,
+          "kind": "light",
+          "color": "#FFD796"
+        },
+        {
+          "x": 0.861087,
+          "y": 0.58199,
+          "radius": 0.07152,
+          "kind": "light",
+          "color": "#FFD796"
+        },
+        {
+          "x": 0.964254,
+          "y": 0.369228,
+          "radius": 0.07152,
+          "kind": "light",
+          "color": "#FFD796"
+        }
+      ]
+    },
+    {
+      "id": "stocking",
+      "files": {
+        "light": "seasonal-stocking-light.png",
+        "dark": "seasonal-stocking-dark.png"
+      },
+      "sha256": {
+        "light": "e5b718823c3c441e8f387b483fb5dcc28b827b2f1f09755fefdc25745620d042",
+        "dark": "02b8c759f8cc4a36eacccf4e2dd5833f37fa93964e43b7fbb43008f00376500b"
+      },
+      "width": 356,
+      "height": 589,
+      "aspectRatio": 0.604414,
+      "fit": "contain",
+      "contentRect": {
+        "x": 0.022472,
+        "y": 0.023769,
+        "width": 0.955056,
+        "height": 0.952462
+      },
+      "baselineY": 0.976231,
+      "centerX": 0.5,
+      "overlayAnchors": []
+    },
+    {
+      "id": "candy-cane",
+      "files": {
+        "light": "seasonal-candy-cane-light.png",
+        "dark": "seasonal-candy-cane-dark.png"
+      },
+      "sha256": {
+        "light": "331c1123d8efe663323804a5663d6c4cc97e0ec99a971b6d3c61abd9fee40320",
+        "dark": "f734276b90f141d0ee2af9f67ac5f163257cb0cb1443f56ad11678f5d4eb4f9e"
+      },
+      "width": 308,
+      "height": 593,
+      "aspectRatio": 0.519393,
+      "fit": "contain",
+      "contentRect": {
+        "x": 0.022727,
+        "y": 0.023609,
+        "width": 0.954545,
+        "height": 0.952782
+      },
+      "baselineY": 0.976391,
+      "centerX": 0.5,
+      "overlayAnchors": []
+    },
+    {
+      "id": "snow",
+      "files": {
+        "light": "seasonal-snow-light.png",
+        "dark": "seasonal-snow-dark.png"
+      },
+      "sha256": {
+        "light": "98a6a12aa692197e9c59d40f5141a5289a32995c8c4dab2ceb89769955a2830c",
+        "dark": "8b9ab4a1252b4712ff66a810d90a7700390146a4062111f4e8bce6bad4ac728f"
+      },
+      "width": 606,
+      "height": 125,
+      "aspectRatio": 4.848,
+      "fit": "contain",
+      "contentRect": {
+        "x": 0.023102,
+        "y": 0.024,
+        "width": 0.953795,
+        "height": 0.952
+      },
+      "baselineY": 0.976,
+      "centerX": 0.5,
+      "overlayAnchors": []
+    },
+    {
+      "id": "star",
+      "files": {
+        "light": "seasonal-star-light.png",
+        "dark": "seasonal-star-dark.png"
+      },
+      "sha256": {
+        "light": "4c2ca24c24e2a02eb5204ca74fe4f41809c0f98575d5f6e3be891f14f66b198c",
+        "dark": "cfdcb80c87cadb4ade13efffe35a5a0efc2fbf4781c5a8d34a1009bfdcec7eb2"
+      },
+      "width": 488,
+      "height": 432,
+      "aspectRatio": 1.12963,
+      "fit": "contain",
+      "contentRect": {
+        "x": 0.02459,
+        "y": 0.023148,
+        "width": 0.95082,
+        "height": 0.953704
+      },
+      "baselineY": 0.976852,
+      "centerX": 0.5,
+      "overlayAnchors": []
+    },
+    {
+      "id": "bauble",
+      "files": {
+        "light": "seasonal-bauble-light.png",
+        "dark": "seasonal-bauble-dark.png"
+      },
+      "sha256": {
+        "light": "b0a4f44b71de1b6cca76967d90e2e5117f73b32699051f5211f614ab0e970442",
+        "dark": "f5a755d73b312063fd59917ab54b7755fd9d81b41d103d00188629230ebb1cdf"
+      },
+      "width": 448,
+      "height": 542,
+      "aspectRatio": 0.826568,
+      "fit": "contain",
+      "contentRect": {
+        "x": 0.024554,
+        "y": 0.023985,
+        "width": 0.950893,
+        "height": 0.95203
+      },
+      "baselineY": 0.976015,
+      "centerX": 0.5,
+      "overlayAnchors": []
+    },
+    {
+      "id": "house",
+      "files": {
+        "light": "seasonal-house-light.png",
+        "dark": "seasonal-house-dark.png"
+      },
+      "sha256": {
+        "light": "5e98f8c15cc4fe98ae6ae62b38ee72b06bfdea72004c1dc3f2d660c0970c10c8",
+        "dark": "f7b18dc77dae1c016302711718df0c6e53e5c08128a469cff6ea9f8b400ff001"
+      },
+      "width": 509,
+      "height": 605,
+      "aspectRatio": 0.841322,
+      "fit": "contain",
+      "contentRect": {
+        "x": 0.023576,
+        "y": 0.02314,
+        "width": 0.952849,
+        "height": 0.953719
+      },
+      "baselineY": 0.97686,
+      "centerX": 0.5,
+      "overlayAnchors": [
+        {
+          "x": 0.143194,
+          "y": 0.454722,
+          "radius": 0.007358,
+          "kind": "light",
+          "color": "#FFD796"
+        },
+        {
+          "x": 0.206904,
+          "y": 0.418246,
+          "radius": 0.007358,
+          "kind": "light",
+          "color": "#FFD796"
+        },
+        {
+          "x": 0.270614,
+          "y": 0.381771,
+          "radius": 0.007358,
+          "kind": "light",
+          "color": "#FFD796"
+        },
+        {
+          "x": 0.334324,
+          "y": 0.345295,
+          "radius": 0.007358,
+          "kind": "light",
+          "color": "#FFD796"
+        },
+        {
+          "x": 0.398035,
+          "y": 0.30882,
+          "radius": 0.007358,
+          "kind": "light",
+          "color": "#FFD796"
+        },
+        {
+          "x": 0.461744,
+          "y": 0.272345,
+          "radius": 0.007358,
+          "kind": "light",
+          "color": "#FFD796"
+        },
+        {
+          "x": 0.525454,
+          "y": 0.27351,
+          "radius": 0.007358,
+          "kind": "light",
+          "color": "#FFD796"
+        },
+        {
+          "x": 0.589165,
+          "y": 0.310869,
+          "radius": 0.007358,
+          "kind": "light",
+          "color": "#FFD796"
+        },
+        {
+          "x": 0.652874,
+          "y": 0.348228,
+          "radius": 0.007358,
+          "kind": "light",
+          "color": "#FFD796"
+        },
+        {
+          "x": 0.716585,
+          "y": 0.385587,
+          "radius": 0.007358,
+          "kind": "light",
+          "color": "#FFD796"
+        },
+        {
+          "x": 0.780295,
+          "y": 0.422946,
+          "radius": 0.007358,
+          "kind": "light",
+          "color": "#FFD796"
+        },
+        {
+          "x": 0.844004,
+          "y": 0.460305,
+          "radius": 0.007358,
+          "kind": "light",
+          "color": "#FFD796"
+        }
+      ]
+    },
+    {
+      "id": "rose-bouquet",
+      "files": {
+        "light": "seasonal-rose-bouquet-light.png",
+        "dark": "seasonal-rose-bouquet-dark.png"
+      },
+      "sha256": {
+        "light": "5259a02677ed0434d18d280c58d1a8d0252aa84bbdd41603a87341ce47c2b235",
+        "dark": "2b2e5d5fe5e3ca0a035950a1d620abd1c9c51ff275a5e492530feefc7ed8aade"
+      },
+      "width": 479,
+      "height": 533,
+      "aspectRatio": 0.898687,
+      "fit": "contain",
+      "contentRect": {
+        "x": 0.022965,
+        "y": 0.02439,
+        "width": 0.954071,
+        "height": 0.95122
+      },
+      "baselineY": 0.97561,
+      "centerX": 0.5,
+      "overlayAnchors": []
+    },
+    {
+      "id": "blue-bouquet",
+      "files": {
+        "light": "seasonal-blue-bouquet-light.png",
+        "dark": "seasonal-blue-bouquet-dark.png"
+      },
+      "sha256": {
+        "light": "b5b6d304a28e2ab565a577ec78032afede51e6da64fadd09f212a2f35c9174ca",
+        "dark": "1367dc584bba4eb3b62f46362aea48fb6b44a15a0c5ad6e3c961bda5fbb7b60d"
+      },
+      "width": 485,
+      "height": 508,
+      "aspectRatio": 0.954724,
+      "fit": "contain",
+      "contentRect": {
+        "x": 0.024742,
+        "y": 0.023622,
+        "width": 0.950515,
+        "height": 0.952756
+      },
+      "baselineY": 0.976378,
+      "centerX": 0.5,
+      "overlayAnchors": []
+    },
+    {
+      "id": "clover",
+      "files": {
+        "light": "seasonal-clover-light.png",
+        "dark": "seasonal-clover-dark.png"
+      },
+      "sha256": {
+        "light": "5dd26a405b956bd6c47a198b73e3ef6f0a920fa89ef203348261377aed42c33d",
+        "dark": "6729f9dec96ce68723170bbcb95279103fea47d28e3382d2e7358823adccc6e2"
+      },
+      "width": 412,
+      "height": 448,
+      "aspectRatio": 0.919643,
+      "fit": "contain",
+      "contentRect": {
+        "x": 0.024272,
+        "y": 0.024554,
+        "width": 0.951456,
+        "height": 0.950893
+      },
+      "baselineY": 0.975446,
+      "centerX": 0.5,
+      "overlayAnchors": []
+    },
+    {
+      "id": "spring-eggs",
+      "files": {
+        "light": "seasonal-spring-eggs-light.png",
+        "dark": "seasonal-spring-eggs-dark.png"
+      },
+      "sha256": {
+        "light": "0829e92b084722b0f6f15aa580334c06ab5af91a5a2a7a3ffdf1f70e5ce911e9",
+        "dark": "bf1fd42452de68e1b7e7c922a8e53071f18623727a778e5b7210332a87e66fc0"
+      },
+      "width": 490,
+      "height": 262,
+      "aspectRatio": 1.870229,
+      "fit": "contain",
+      "contentRect": {
+        "x": 0.02449,
+        "y": 0.022901,
+        "width": 0.95102,
+        "height": 0.954198
+      },
+      "baselineY": 0.977099,
+      "centerX": 0.5,
+      "overlayAnchors": []
+    },
+    {
+      "id": "spring-flowers",
+      "files": {
+        "light": "seasonal-spring-flowers-light.png",
+        "dark": "seasonal-spring-flowers-dark.png"
+      },
+      "sha256": {
+        "light": "26c90d18b2b2fde6d12b226edccd67b6d236262b3e200a25c010469dff7268f5",
+        "dark": "8d592b13a6e7ca935b8adbe13b271a9cb74c62201048f5e142fa81ed380550d8"
+      },
+      "width": 488,
+      "height": 187,
+      "aspectRatio": 2.609626,
+      "fit": "contain",
+      "contentRect": {
+        "x": 0.02459,
+        "y": 0.02139,
+        "width": 0.95082,
+        "height": 0.957219
+      },
+      "baselineY": 0.97861,
+      "centerX": 0.5,
+      "overlayAnchors": []
+    },
+    {
+      "id": "pumpkin",
+      "files": {
+        "light": "seasonal-pumpkin-light.png",
+        "dark": "seasonal-pumpkin-dark.png"
+      },
+      "sha256": {
+        "light": "73a0a84a43f0add8d60c09cafa9566f2e9550d81cf3f87f28319051588b1224c",
+        "dark": "abd85abedff8f9fbee87ef6303de79b77b4acb3fe0682add9c491bcb6691df90"
+      },
+      "width": 486,
+      "height": 490,
+      "aspectRatio": 0.991837,
+      "fit": "contain",
+      "contentRect": {
+        "x": 0.024691,
+        "y": 0.02449,
+        "width": 0.950617,
+        "height": 0.95102
+      },
+      "baselineY": 0.97551,
+      "centerX": 0.5,
+      "overlayAnchors": []
+    },
+    {
+      "id": "autumn-harvest",
+      "files": {
+        "light": "seasonal-autumn-harvest-light.png",
+        "dark": "seasonal-autumn-harvest-dark.png"
+      },
+      "sha256": {
+        "light": "8427ada24848141cde82279449dc1b476d410f769d5ec111ccff59c47db5adc6",
+        "dark": "a16859d2c21e62a864fbe5e3e47105f08ade1c5a824b648e47d638b76b75fbed"
+      },
+      "width": 490,
+      "height": 307,
+      "aspectRatio": 1.596091,
+      "fit": "contain",
+      "contentRect": {
+        "x": 0.02449,
+        "y": 0.022801,
+        "width": 0.95102,
+        "height": 0.954397
+      },
+      "baselineY": 0.977199,
+      "centerX": 0.5,
+      "overlayAnchors": []
+    },
+    {
+      "id": "laurel",
+      "files": {
+        "light": "seasonal-laurel-light.png",
+        "dark": "seasonal-laurel-dark.png"
+      },
+      "sha256": {
+        "light": "6bc189bb56f74a00a2684292faa1cd9377a3d4018e8b139257ef4a31a7e82d44",
+        "dark": "bec347c37cb87e06c4a76f82e9b73696d7c5552361c6723dadddb8552750c652"
+      },
+      "width": 481,
+      "height": 383,
+      "aspectRatio": 1.255875,
+      "fit": "contain",
+      "contentRect": {
+        "x": 0.022869,
+        "y": 0.023499,
+        "width": 0.954262,
+        "height": 0.953003
+      },
+      "baselineY": 0.976501,
+      "centerX": 0.5,
+      "overlayAnchors": []
+    },
+    {
+      "id": "memorial-candle",
+      "files": {
+        "light": "seasonal-memorial-candle-light.png",
+        "dark": "seasonal-memorial-candle-dark.png"
+      },
+      "sha256": {
+        "light": "89b517279fee7f4e08458f0ab7959992a8b95b27d075183bd6f688dd530db031",
+        "dark": "26a099399db42bef6477845549498a4959eff1ca2f4bec26f1106ec3ea7caf4e"
+      },
+      "width": 436,
+      "height": 600,
+      "aspectRatio": 0.726667,
+      "fit": "contain",
+      "contentRect": {
+        "x": 0.022936,
+        "y": 0.023333,
+        "width": 0.954128,
+        "height": 0.953333
+      },
+      "baselineY": 0.976667,
+      "centerX": 0.5,
+      "overlayAnchors": [
+        {
+          "x": 0.604937,
+          "y": 0.110241,
+          "radius": 0.088767,
+          "kind": "candle",
+          "color": "#FFD796"
+        }
+      ]
+    },
+    {
+      "id": "civic-ribbon",
+      "files": {
+        "light": "seasonal-civic-ribbon-light.png",
+        "dark": "seasonal-civic-ribbon-dark.png"
+      },
+      "sha256": {
+        "light": "6d21455410cfb31e642641a3a4c449043f97cc140716f181d94205d1e14fc9ec",
+        "dark": "9d5fff0c6415f3c1c9cddd40723dd6aa03577b27b6f00c2961747ced3793c07b"
+      },
+      "width": 979,
+      "height": 249,
+      "aspectRatio": 3.931727,
+      "fit": "contain",
+      "contentRect": {
+        "x": 0.023493,
+        "y": 0.024096,
+        "width": 0.953013,
+        "height": 0.951807
+      },
+      "baselineY": 0.975904,
+      "centerX": 0.5,
+      "overlayAnchors": []
+    },
+    {
+      "id": "juneteenth-ribbon",
+      "files": {
+        "light": "seasonal-juneteenth-ribbon-light.png",
+        "dark": "seasonal-juneteenth-ribbon-dark.png"
+      },
+      "sha256": {
+        "light": "311223323feb41f9a59ddcd5f9ac789c5c347d2a7ad31bf212a55b541432ad54",
+        "dark": "cc0dea0e53afdd06cc0398b5c03f7f0f3319f85b3e6fca3acd6fe404ec4ec26a"
+      },
+      "width": 979,
+      "height": 249,
+      "aspectRatio": 3.931727,
+      "fit": "contain",
+      "contentRect": {
+        "x": 0.023493,
+        "y": 0.024096,
+        "width": 0.953013,
+        "height": 0.951807
+      },
+      "baselineY": 0.975904,
+      "centerX": 0.5,
+      "overlayAnchors": []
+    },
+    {
+      "id": "gear",
+      "files": {
+        "light": "seasonal-gear-light.png",
+        "dark": "seasonal-gear-dark.png"
+      },
+      "sha256": {
+        "light": "7445ed049d5f477df97e4d84ed36414e122471c6224ceb2327f7d61d381efff6",
+        "dark": "814e0ffc7fb3903c50192a8535f64d4863fb7000efdac49839d5f3e8d6aafd47"
+      },
+      "width": 491,
+      "height": 485,
+      "aspectRatio": 1.012371,
+      "fit": "contain",
+      "contentRect": {
+        "x": 0.02444,
+        "y": 0.024742,
+        "width": 0.95112,
+        "height": 0.950515
+      },
+      "baselineY": 0.975258,
+      "centerX": 0.5,
+      "overlayAnchors": []
+    },
+    {
+      "id": "compass",
+      "files": {
+        "light": "seasonal-compass-light.png",
+        "dark": "seasonal-compass-dark.png"
+      },
+      "sha256": {
+        "light": "6debfed3970d2740a949ce801632587d7189ada6a99aac3a7b9c0c20792b7fd0",
+        "dark": "ca914aaf49f43739462e1360c9b2f11a03ae8f4d01657023599729a33e10a05e"
+      },
+      "width": 491,
+      "height": 458,
+      "aspectRatio": 1.072052,
+      "fit": "contain",
+      "contentRect": {
+        "x": 0.02444,
+        "y": 0.024017,
+        "width": 0.95112,
+        "height": 0.951965
+      },
+      "baselineY": 0.975983,
+      "centerX": 0.5,
+      "overlayAnchors": []
+    },
+    {
+      "id": "new-year",
+      "files": {
+        "light": "seasonal-new-year-light.png",
+        "dark": "seasonal-new-year-dark.png"
+      },
+      "sha256": {
+        "light": "b810f35bd5cffa9ae6b624e1e96b0e95c4bf6fd5e764c0eaaf7c88a2b3d3d7ab",
+        "dark": "30e0d6f67afd90b3c7518f0b235988bf27ac3000c4b5533b74e9c82ce94616b9"
+      },
+      "width": 489,
+      "height": 343,
+      "aspectRatio": 1.425656,
+      "fit": "contain",
+      "contentRect": {
+        "x": 0.02454,
+        "y": 0.023324,
+        "width": 0.95092,
+        "height": 0.953353
+      },
+      "baselineY": 0.976676,
+      "centerX": 0.5,
+      "overlayAnchors": []
+    },
+    {
+      "id": "heart",
+      "files": {
+        "light": "seasonal-heart-light.png",
+        "dark": "seasonal-heart-dark.png"
+      },
+      "sha256": {
+        "light": "9ca6c2fffee770e01d5351bdbf0473a4b82471ba987a4801d0564407e51c0e59",
+        "dark": "d25a86d0d464a636adf95f5aedb734acecfa8dba2d8c02eb5a6fa79906a1e77a"
+      },
+      "width": 488,
+      "height": 411,
+      "aspectRatio": 1.187348,
+      "fit": "contain",
+      "contentRect": {
+        "x": 0.02459,
+        "y": 0.024331,
+        "width": 0.95082,
+        "height": 0.951338
+      },
+      "baselineY": 0.975669,
+      "centerX": 0.5,
+      "overlayAnchors": []
+    },
+    {
+      "id": "turkey",
+      "files": {
+        "light": "seasonal-turkey-light.png",
+        "dark": "seasonal-turkey-dark.png"
+      },
+      "sha256": {
+        "light": "5680547ac34cf9cecbec31bc1c0ee6257f55e5c4ed544e5781b1ef2e28dfeb9c",
+        "dark": "093ed8ee0d7998f92187758e9353888ff6d4fd10f8619e53fe00d0d586562166"
+      },
+      "width": 468,
+      "height": 411,
+      "aspectRatio": 1.138686,
+      "fit": "contain",
+      "contentRect": {
+        "x": 0.023504,
+        "y": 0.024331,
+        "width": 0.952991,
+        "height": 0.951338
+      },
+      "baselineY": 0.975669,
+      "centerX": 0.5,
+      "overlayAnchors": []
+    }
+  ]
+}

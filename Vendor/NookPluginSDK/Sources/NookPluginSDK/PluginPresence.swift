@@ -32,6 +32,7 @@ public struct PluginAttention: Codable, Equatable, Sendable {
 /// Fixed, bundled imagery. This is not a general file-serving API.
 public enum PluginVisualAssets {
     public static func url(path: String) -> URL? {
+        if let seasonal = PluginSeasonalArtCatalog.url(path:path) { return seasonal }
         if path == "/__nook_sdk__/elemental-model-viewer.js" {
             return Bundle.module.url(forResource:"elemental-model-viewer",withExtension:"js")
         }

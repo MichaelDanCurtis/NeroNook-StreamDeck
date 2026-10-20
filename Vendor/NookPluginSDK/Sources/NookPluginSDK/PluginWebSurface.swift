@@ -1,5 +1,26 @@
+#if canImport(AppKit) && !targetEnvironment(macCatalyst)
 import SwiftUI
 import WebKit
+import Combine
+
+private final class PluginVisibleWebView:WKWebView {
+    var visibilityChanged:((Bool)->Void)?
+    private var observations:[AnyCancellable]=[]
+    private var lastVisible:Bool?
+    var actuallyVisible:Bool { window.map { $0.isVisible && !$0.isMiniaturized && $0.occlusionState.contains(.visible) && !isHiddenOrHasHiddenAncestor } ?? false }
+    override func viewDidMoveToWindow() {
+        super.viewDidMoveToWindow();observations.removeAll()
+        if let window {
+            for name in [NSWindow.didChangeOcclusionStateNotification,NSWindow.didMiniaturizeNotification,NSWindow.didDeminiaturizeNotification] {
+                NotificationCenter.default.publisher(for:name,object:window).receive(on:RunLoop.main).sink { [weak self] _ in self?.reportVisibility() }.store(in:&observations)
+            }
+        }
+        reportVisibility()
+    }
+    override func viewDidHide(){super.viewDidHide();reportVisibility()}
+    override func viewDidUnhide(){super.viewDidUnhide();reportVisibility()}
+    func reportVisibility(){let value=actuallyVisible;guard lastVisible != value else{return};lastVisible=value;visibilityChanged?(value)}
+}
 
 /// Same custom view renderer for a host stage or a plugin-owned standalone window.
 public struct PluginWebSurface: NSViewRepresentable {
@@ -21,7 +42,10 @@ public struct PluginWebSurface: NSViewRepresentable {
         configuration.userContentController.addScriptMessageHandler(context.coordinator, contentWorld: .page, name: "neroView")
         configuration.userContentController.addScriptMessageHandler(context.coordinator, contentWorld: .page, name: "neroAvatarPresence")
         configuration.userContentController.addUserScript(.init(source: Self.bridge, injectionTime: .atDocumentStart, forMainFrameOnly: true))
-        let web = WKWebView(frame: .zero, configuration: configuration)
+        let web = PluginVisibleWebView(frame: .zero, configuration: configuration)
+        web.visibilityChanged={ [weak coordinator=context.coordinator,weak web] visible in
+            guard let web else{return};coordinator?.seasonalVisibility(web,visible:visible)
+        }
         web.navigationDelegate = context.coordinator; web.uiDelegate = context.coordinator
         web.underPageBackgroundColor = .clear
         context.coordinator.load(web)
@@ -36,6 +60,8 @@ public struct PluginWebSurface: NSViewRepresentable {
         context.coordinator.updateAppearance(web)
     }
     public static func dismantleNSView(_ web: WKWebView, coordinator: Coordinator) {
+        web.evaluateJavaScript("window.NookSeasonal?.dispose()",completionHandler:nil)
+        (web as? PluginVisibleWebView)?.visibilityChanged=nil
         coordinator.active = false; coordinator.cancelResources(); web.stopLoading()
         coordinator.stopPointer()
         web.configuration.userContentController.removeAllScriptMessageHandlers()
@@ -99,6 +125,13 @@ public struct PluginWebSurface: NSViewRepresentable {
         }
         func cancelResources() { let tasks = resourceTasks.values; resourceTasks.removeAll(); for task in tasks { task.cancel() } }
         init(_ owner: PluginWebSurface) { self.owner = owner }
+        func seasonalVisibility(_ web:WKWebView,visible:Bool) {
+            guard active,loaded else{return};let document=appearanceDocument
+            Task { @MainActor [weak self,weak web] in
+                guard let self,let web,self.active,self.loaded,self.appearanceDocument==document else{return}
+                _ = try? await web.callAsyncJavaScript("window.NookSeasonal?.setVisible(visible)",arguments:["visible":visible],in:nil,contentWorld:.page)
+            }
+        }
         func load(_ web: WKWebView) {
             cancelResources(); stopPointer(); loaded = false; active = true; assetRequests = 0; assetBytes = 0
             appearanceDocument=UUID().uuidString; appearanceSerial=0; lastAppearance=nil
@@ -133,6 +166,7 @@ public struct PluginWebSurface: NSViewRepresentable {
         }
         public func webView(_ webView: WKWebView, didFinish navigation: WKNavigation!) {
             loaded = webView.url?.scheme == PluginViewResources.scheme; updateAppearance(webView); update(webView)
+            seasonalVisibility(webView,visible:(webView as? PluginVisibleWebView)?.actuallyVisible == true)
             let epoch=pointerEpoch
             Task { @MainActor [weak self,weak webView] in
                 guard let self,let webView,self.active,self.loaded else { return }
@@ -263,3 +297,5 @@ public struct PluginWebSurface: NSViewRepresentable {
         } else { available += 1 }
     }
 }
+
+#endif

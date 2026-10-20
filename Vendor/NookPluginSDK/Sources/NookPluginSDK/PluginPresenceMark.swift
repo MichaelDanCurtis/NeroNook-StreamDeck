@@ -24,18 +24,19 @@ public struct PluginPresenceMark: View {
     public var activity: Double
     public var persona: PluginAvatarPersona
     public var speech: PluginAvatarSpeech
+    public var expression: PluginExpressionPose?
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @Environment(\.pluginAppearance) private var appearance
     @Environment(\.pluginHasSeasonalSurface) private var hasSeasonalSurface
     @State private var floating = false
-    public init(size: CGFloat = 64, activity: Double = 0, persona: PluginAvatarPersona = .nero, speech: PluginAvatarSpeech = .init()) {
-        self.size=size; self.activity=activity; self.persona=persona; self.speech=speech
+    public init(size: CGFloat = 64, activity: Double = 0, persona: PluginAvatarPersona = .nero, speech: PluginAvatarSpeech = .init(), expression: PluginExpressionPose? = nil) {
+        self.size=size; self.activity=activity; self.persona=persona; self.speech=speech; self.expression=expression
     }
     public var body: some View {
         let motion = !reduceMotion && !appearance.reduceMotion
         ZStack {
             PluginAvatarSceneBackdrop(scene: size >= 80 && !hasSeasonalSurface ? appearance.seasonalScene : nil)
-            PluginAvatarSurface(persona: persona, theme: appearance.avatars?.palette(persona, fallback: appearance.theme.id) ?? appearance.theme.id, speech: speech, reducedMotion: !motion, opaque: appearance.reduceTransparency || appearance.increasedContrast, style: appearance.avatars?.style(persona) ?? "elemental")
+            PluginAvatarSurface(persona: persona, theme: appearance.avatars?.palette(persona, fallback: appearance.theme.id) ?? appearance.theme.id, speech: speech, expression: expression ?? speech.expression ?? .init(), reducedMotion: !motion, opaque: appearance.reduceTransparency || appearance.increasedContrast, style: appearance.avatars?.style(persona) ?? "elemental")
         }
             .id(persona.rawValue + (appearance.avatars?.style(persona) ?? "elemental"))
             .frame(width:size,height:size)
