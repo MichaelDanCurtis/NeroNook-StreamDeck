@@ -2,7 +2,9 @@ import Foundation
 
 public enum PluginHoliday: String, Codable, CaseIterable, Sendable {
     case newYear, valentines, presidents, stPatricks, easter, mothersDay, memorial, fathersDay
-    case juneteenth, independence, labor, columbus, halloween, veterans, thanksgiving, christmas
+    case remembrance911, juneteenth, independence, labor, columbus, halloween, veterans, thanksgiving, christmas
+    /// Retired raw value remains decodable; it is never selectable or scheduled.
+    public static let allCases:[Self] = [.newYear,.valentines,.presidents,.stPatricks,.easter,.mothersDay,.memorial,.fathersDay,.independence,.labor,.remembrance911,.columbus,.halloween,.veterans,.thanksgiving,.christmas]
     public var title: String {
         switch self {
         case .newYear: return "New Year’s Day"
@@ -13,6 +15,7 @@ public enum PluginHoliday: String, Codable, CaseIterable, Sendable {
         case .mothersDay: return "Mother’s Day"
         case .memorial: return "Memorial Day"
         case .fathersDay: return "Father’s Day"
+        case .remembrance911: return "September 11 remembrance"
         case .juneteenth: return "Juneteenth"
         case .independence: return "Independence Day"
         case .labor: return "Labor Day"
@@ -25,9 +28,9 @@ public enum PluginHoliday: String, Codable, CaseIterable, Sendable {
     }
     public var stageDays: Int { self == .christmas ? 12 : [.newYear,.halloween,.thanksgiving].contains(self) ? 7 : 5 }
     public var isLegacyScene: Bool { [.halloween,.thanksgiving,.christmas].contains(self) }
-    public var needsUSCalendar: Bool { [.presidents,.memorial,.juneteenth,.independence,.labor,.columbus,.veterans,.thanksgiving].contains(self) }
-    public var isFederal: Bool { needsUSCalendar || [.newYear,.christmas].contains(self) }
-    public var isReflective: Bool { [.memorial,.veterans].contains(self) }
+    public var needsUSCalendar: Bool { [.presidents,.memorial,.remembrance911,.juneteenth,.independence,.labor,.columbus,.veterans,.thanksgiving].contains(self) }
+    public var isFederal: Bool { (needsUSCalendar && self != .remembrance911) || [.newYear,.christmas].contains(self) }
+    public var isReflective: Bool { [.memorial,.veterans,.remembrance911].contains(self) }
 
     /// Gregorian civil dates; Easter follows the Western ecclesiastical calendar.
     /// Workday observance shifts fixed federal dates only; no regional inference.
@@ -55,6 +58,7 @@ public enum PluginHoliday: String, Codable, CaseIterable, Sendable {
         case .mothersDay: actual=weekday(5,1,2)
         case .memorial: actual=weekday(5,2,-1)
         case .fathersDay: actual=weekday(6,1,3)
+        case .remembrance911: actual=fixed(9,11)
         case .juneteenth: actual=fixed(6,19)
         case .independence: actual=fixed(7,4)
         case .labor: actual=weekday(9,2,1)
@@ -87,7 +91,7 @@ public struct PluginSeasonalPreferences: Codable, Equatable, Sendable {
         let c = try decoder.container(keyedBy:CodingKeys.self)
         version = try c.decode(Int.self,forKey:.version)
         automatic = try c.decode(Bool.self,forKey:.automatic)
-        holidays = try c.decode(Set<PluginHoliday>.self,forKey:.holidays)
+        holidays = try c.decode(Set<PluginHoliday>.self,forKey:.holidays).subtracting([.juneteenth])
         locale = try c.decode(PluginSeasonalLocale.self,forKey:.locale)
         intensity = try c.decode(PluginSceneIntensity.self,forKey:.intensity)
         allowsExpandedCelebration = try c.decode(Bool.self,forKey:.allowsExpandedCelebration)
@@ -159,7 +163,7 @@ public struct PluginCelebrationLedger: Codable, Equatable, Sendable {
         }) else { throw ModuleProblem("Invalid celebration receipts.") }
     }
     public mutating func request(scene: PluginSeasonalScene, preferences: PluginSeasonalPreferences, explicitGesture: Bool, preview: Bool = false) -> Bool {
-        guard (try? scene.validate()) != nil, preferences.automatic, preferences.holidays.contains(scene.holiday),
+        guard (try? scene.validate()) != nil, preferences.automatic, scene.holiday != .juneteenth, preferences.holidays.contains(scene.holiday),
               (!scene.holiday.needsUSCalendar || preferences.locale == .unitedStates),
               preferences.allowsExpandedCelebration, explicitGesture, scene.isHoliday, !preview,
               !keys.contains(scene.celebrationKey), keys.count < 64 else { return false }

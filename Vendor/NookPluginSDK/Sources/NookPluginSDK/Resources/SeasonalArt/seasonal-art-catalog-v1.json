@@ -1127,6 +1127,606 @@
       "baselineY": 0.975669,
       "centerX": 0.5,
       "overlayAnchors": []
+    },
+    {
+      "id": "veterans-salute",
+      "files": {
+        "light": "seasonal-veterans-salute-light.png",
+        "dark": "seasonal-veterans-salute-dark.png"
+      },
+      "width": 960,
+      "height": 540,
+      "aspectRatio": 1.7777777777777777,
+      "contentRect": {
+        "x": 0,
+        "y": 0,
+        "width": 1,
+        "height": 1
+      },
+      "baselineY": 1,
+      "centerX": 0.5,
+      "fit": "contain",
+      "overlayAnchors": []
+    },
+    {
+      "id": "remembrance-city",
+      "files": {
+        "light": "seasonal-remembrance-city-light.png",
+        "dark": "seasonal-remembrance-city-dark.png"
+      },
+      "width": 960,
+      "height": 540,
+      "aspectRatio": 1.7777777777777777,
+      "contentRect": {
+        "x": 0,
+        "y": 0,
+        "width": 1,
+        "height": 1
+      },
+      "baselineY": 1,
+      "centerX": 0.5,
+      "fit": "contain",
+      "overlayAnchors": []
+    },
+    {
+      "id": "rushmore",
+      "files": {
+        "light": "seasonal-rushmore-light.png",
+        "dark": "seasonal-rushmore-dark.png"
+      },
+      "width": 960,
+      "height": 540,
+      "aspectRatio": 1.7777777777777777,
+      "contentRect": {
+        "x": 0,
+        "y": 0,
+        "width": 1,
+        "height": 1
+      },
+      "baselineY": 1,
+      "centerX": 0.5,
+      "fit": "contain",
+      "overlayAnchors": []
+    },
+    {
+      "id": "arlington",
+      "files": {
+        "light": "seasonal-arlington-light.png",
+        "dark": "seasonal-arlington-dark.png"
+      },
+      "width": 960,
+      "height": 540,
+      "aspectRatio": 1.7777777777777777,
+      "contentRect": {
+        "x": 0,
+        "y": 0,
+        "width": 1,
+        "height": 1
+      },
+      "baselineY": 1,
+      "centerX": 0.5,
+      "fit": "contain",
+      "overlayAnchors": []
+    },
+    {
+      "id": "revolution",
+      "files": {
+        "light": "seasonal-revolution-light.png",
+        "dark": "seasonal-revolution-dark.png"
+      },
+      "width": 960,
+      "height": 540,
+      "aspectRatio": 1.7777777777777777,
+      "contentRect": {
+        "x": 0,
+        "y": 0,
+        "width": 1,
+        "height": 1
+      },
+      "baselineY": 1,
+      "centerX": 0.5,
+      "fit": "contain",
+      "overlayAnchors": []
+    },
+    {
+      "id": "columbus-shore",
+      "files": {
+        "light": "seasonal-columbus-shore-light.png",
+        "dark": "seasonal-columbus-shore-dark.png"
+      },
+      "width": 960,
+      "height": 540,
+      "aspectRatio": 1.7777777777777777,
+      "contentRect": {
+        "x": 0,
+        "y": 0,
+        "width": 1,
+        "height": 1
+      },
+      "baselineY": 1,
+      "centerX": 0.5,
+      "fit": "contain",
+      "overlayAnchors": []
+    },
+    {
+      "id": "washington",
+      "files": {
+        "light": "seasonal-washington-light.png",
+        "dark": "seasonal-washington-dark.png"
+      },
+      "width": 591,
+      "height": 640,
+      "aspectRatio": 0.9234375,
+      "contentRect": {
+        "x": 0,
+        "y": 0,
+        "width": 1,
+        "height": 1
+      },
+      "baselineY": 1,
+      "centerX": 0.5,
+      "fit": "contain",
+      "overlayAnchors": []
+    },
+    {
+      "id": "lincoln",
+      "files": {
+        "light": "seasonal-lincoln-light.png",
+        "dark": "seasonal-lincoln-dark.png"
+      },
+      "width": 591,
+      "height": 640,
+      "aspectRatio": 0.9234375,
+      "contentRect": {
+        "x": 0,
+        "y": 0,
+        "width": 1,
+        "height": 1
+      },
+      "baselineY": 1,
+      "centerX": 0.5,
+      "fit": "contain",
+      "overlayAnchors": []
+    },
+    {
+      "id": "rabbit",
+      "files": {
+        "light": "seasonal-rabbit-light.png",
+        "dark": "seasonal-rabbit-dark.png"
+      },
+      "width": 640,
+      "height": 426,
+      "aspectRatio": 1.5023474178403755,
+      "contentRect": {
+        "x": 0,
+        "y": 0,
+        "width": 1,
+        "height": 1
+      },
+      "baselineY": 1,
+      "centerX": 0.5,
+      "fit": "contain",
+      "overlayAnchors": []
+    },
+    {
+      "id": "leprechaun",
+      "files": {
+        "light": "seasonal-leprechaun-light.png",
+        "dark": "seasonal-leprechaun-dark.png"
+      },
+      "width": 533,
+      "height": 640,
+      "aspectRatio": 0.8328125,
+      "contentRect": {
+        "x": 0,
+        "y": 0,
+        "width": 1,
+        "height": 1
+      },
+      "baselineY": 1,
+      "centerX": 0.5,
+      "fit": "contain",
+      "overlayAnchors": []
+    },
+    {
+      "id": "flower-heart",
+      "files": {
+        "light": "seasonal-flower-heart-light.png",
+        "dark": "seasonal-flower-heart-dark.png"
+      },
+      "width": 640,
+      "height": 585,
+      "aspectRatio": 1.0940170940170941,
+      "contentRect": {
+        "x": 0,
+        "y": 0,
+        "width": 1,
+        "height": 1
+      },
+      "baselineY": 1,
+      "centerX": 0.5,
+      "fit": "contain",
+      "overlayAnchors": []
+    },
+    {
+      "id": "bears",
+      "files": {
+        "light": "seasonal-bears-light.png",
+        "dark": "seasonal-bears-dark.png"
+      },
+      "width": 602,
+      "height": 640,
+      "aspectRatio": 0.940625,
+      "contentRect": {
+        "x": 0,
+        "y": 0,
+        "width": 1,
+        "height": 1
+      },
+      "baselineY": 1,
+      "centerX": 0.5,
+      "fit": "contain",
+      "overlayAnchors": []
+    },
+    {
+      "id": "monsters",
+      "files": {
+        "light": "seasonal-monsters-light.png",
+        "dark": "seasonal-monsters-dark.png"
+      },
+      "width": 640,
+      "height": 426,
+      "aspectRatio": 1.5023474178403755,
+      "contentRect": {
+        "x": 0,
+        "y": 0,
+        "width": 1,
+        "height": 1
+      },
+      "baselineY": 1,
+      "centerX": 0.5,
+      "fit": "contain",
+      "overlayAnchors": []
+    },
+    {
+      "id": "live-turkey",
+      "files": {
+        "light": "seasonal-live-turkey-light.png",
+        "dark": "seasonal-live-turkey-dark.png"
+      },
+      "width": 640,
+      "height": 585,
+      "aspectRatio": 1.0940170940170941,
+      "contentRect": {
+        "x": 0,
+        "y": 0,
+        "width": 1,
+        "height": 1
+      },
+      "baselineY": 1,
+      "centerX": 0.5,
+      "fit": "contain",
+      "overlayAnchors": []
+    },
+    {
+      "id": "feast",
+      "files": {
+        "light": "seasonal-feast-light.png",
+        "dark": "seasonal-feast-dark.png"
+      },
+      "width": 640,
+      "height": 360,
+      "aspectRatio": 1.7777777777777777,
+      "contentRect": {
+        "x": 0,
+        "y": 0,
+        "width": 1,
+        "height": 1
+      },
+      "baselineY": 1,
+      "centerX": 0.5,
+      "fit": "contain",
+      "overlayAnchors": []
+    },
+    {
+      "id": "workers",
+      "files": {
+        "light": "seasonal-workers-light.png",
+        "dark": "seasonal-workers-dark.png"
+      },
+      "width": 640,
+      "height": 426,
+      "aspectRatio": 1.5023474178403755,
+      "contentRect": {
+        "x": 0,
+        "y": 0,
+        "width": 1,
+        "height": 1
+      },
+      "baselineY": 1,
+      "centerX": 0.5,
+      "fit": "contain",
+      "overlayAnchors": []
+    },
+    {
+      "id": "ocean",
+      "files": {
+        "light": "seasonal-ocean-light.png",
+        "dark": "seasonal-ocean-dark.png"
+      },
+      "width": 960,
+      "height": 540,
+      "aspectRatio": 1.7777777777777777,
+      "contentRect": {
+        "x": 0,
+        "y": 0,
+        "width": 1,
+        "height": 1
+      },
+      "baselineY": 1,
+      "centerX": 0.5,
+      "fit": "contain",
+      "overlayAnchors": []
+    },
+    {
+      "id": "fleet",
+      "files": {
+        "light": "seasonal-fleet-light.png",
+        "dark": "seasonal-fleet-dark.png"
+      },
+      "width": 640,
+      "height": 360,
+      "aspectRatio": 1.7777777777777777,
+      "contentRect": {
+        "x": 0,
+        "y": 0,
+        "width": 1,
+        "height": 1
+      },
+      "baselineY": 1,
+      "centerX": 0.5,
+      "fit": "contain",
+      "overlayAnchors": []
+    },
+    {
+      "id": "grass-ground",
+      "files": {
+        "light": "seasonal-grass-ground-light.png",
+        "dark": "seasonal-grass-ground-dark.png"
+      },
+      "width": 960,
+      "height": 165,
+      "aspectRatio": 5.818181818181818,
+      "contentRect": {
+        "x": 0,
+        "y": 0,
+        "width": 1,
+        "height": 1
+      },
+      "baselineY": 1,
+      "centerX": 0.5,
+      "fit": "contain",
+      "overlayAnchors": []
+    },
+    {
+      "id": "american-flag",
+      "files": {
+        "light": "seasonal-american-flag-light.png",
+        "dark": "seasonal-american-flag-dark.png"
+      },
+      "width": 768,
+      "height": 960,
+      "aspectRatio": 0.8,
+      "contentRect": {
+        "x": 0,
+        "y": 0,
+        "width": 1,
+        "height": 1
+      },
+      "baselineY": 1,
+      "centerX": 0.5,
+      "fit": "contain",
+      "overlayAnchors": []
+    },
+    {
+      "id": "wide-flag",
+      "files": {
+        "light": "seasonal-wide-flag-light.png",
+        "dark": "seasonal-wide-flag-dark.png"
+      },
+      "width": 960,
+      "height": 548,
+      "aspectRatio": 1.7518248175182483,
+      "contentRect": {
+        "x": 0,
+        "y": 0,
+        "width": 1,
+        "height": 1
+      },
+      "baselineY": 1,
+      "centerX": 0.5,
+      "fit": "contain",
+      "overlayAnchors": []
+    },
+    {
+      "id": "service-standards",
+      "files": {
+        "light": "seasonal-service-standards-light.png",
+        "dark": "seasonal-service-standards-dark.png"
+      },
+      "width": 960,
+      "height": 480,
+      "aspectRatio": 2.0,
+      "contentRect": {
+        "x": 0,
+        "y": 0,
+        "width": 1,
+        "height": 1
+      },
+      "baselineY": 1,
+      "centerX": 0.5,
+      "fit": "contain",
+      "overlayAnchors": []
+    },
+    {
+      "id": "zombie-hand",
+      "files": {
+        "light": "seasonal-zombie-hand-light.png",
+        "dark": "seasonal-zombie-hand-dark.png"
+      },
+      "width": 768,
+      "height": 960,
+      "aspectRatio": 0.8,
+      "contentRect": {
+        "x": 0,
+        "y": 0,
+        "width": 1,
+        "height": 1
+      },
+      "baselineY": 1,
+      "centerX": 0.5,
+      "fit": "contain",
+      "overlayAnchors": []
+    },
+    {
+      "id": "grave-cluster",
+      "files": {
+        "light": "seasonal-grave-cluster-light.png",
+        "dark": "seasonal-grave-cluster-dark.png"
+      },
+      "width": 960,
+      "height": 597,
+      "aspectRatio": 1.6080402010050252,
+      "contentRect": {
+        "x": 0,
+        "y": 0,
+        "width": 1,
+        "height": 1
+      },
+      "baselineY": 1,
+      "centerX": 0.5,
+      "fit": "contain",
+      "overlayAnchors": []
+    },
+    {
+      "id": "butterfly",
+      "files": {
+        "light": "seasonal-butterfly-light.png",
+        "dark": "seasonal-butterfly-dark.png"
+      },
+      "width": 960,
+      "height": 960,
+      "aspectRatio": 1.0,
+      "contentRect": {
+        "x": 0,
+        "y": 0,
+        "width": 1,
+        "height": 1
+      },
+      "baselineY": 1,
+      "centerX": 0.5,
+      "fit": "contain",
+      "overlayAnchors": []
+    },
+    {
+      "id": "workbench",
+      "files": {
+        "light": "seasonal-workbench-light.png",
+        "dark": "seasonal-workbench-dark.png"
+      },
+      "width": 960,
+      "height": 597,
+      "aspectRatio": 1.6080402010050252,
+      "contentRect": {
+        "x": 0,
+        "y": 0,
+        "width": 1,
+        "height": 1
+      },
+      "baselineY": 1,
+      "centerX": 0.5,
+      "fit": "contain",
+      "overlayAnchors": []
+    },
+    {
+      "id": "picnic",
+      "files": {
+        "light": "seasonal-picnic-light.png",
+        "dark": "seasonal-picnic-dark.png"
+      },
+      "width": 960,
+      "height": 512,
+      "aspectRatio": 1.875,
+      "contentRect": {
+        "x": 0,
+        "y": 0,
+        "width": 1,
+        "height": 1
+      },
+      "baselineY": 1,
+      "centerX": 0.5,
+      "fit": "contain",
+      "overlayAnchors": []
+    },
+    {
+      "id": "train",
+      "files": {
+        "light": "seasonal-train-light.png",
+        "dark": "seasonal-train-dark.png"
+      },
+      "width": 960,
+      "height": 422,
+      "aspectRatio": 2.2748815165876777,
+      "contentRect": {
+        "x": 0,
+        "y": 0,
+        "width": 1,
+        "height": 1
+      },
+      "baselineY": 1,
+      "centerX": 0.5,
+      "fit": "contain",
+      "overlayAnchors": []
+    },
+    {
+      "id": "train-track",
+      "files": {
+        "light": "seasonal-train-track-light.png",
+        "dark": "seasonal-train-track-dark.png"
+      },
+      "width": 960,
+      "height": 262,
+      "aspectRatio": 3.66412213740458,
+      "contentRect": {
+        "x": 0,
+        "y": 0,
+        "width": 1,
+        "height": 1
+      },
+      "baselineY": 1,
+      "centerX": 0.5,
+      "fit": "contain",
+      "overlayAnchors": []
+    },
+    {
+      "id": "garden-flowers",
+      "files": {
+        "light": "seasonal-garden-flowers-light.png",
+        "dark": "seasonal-garden-flowers-dark.png"
+      },
+      "width": 640,
+      "height": 480,
+      "aspectRatio": 1.3333333333333333,
+      "contentRect": {
+        "x": 0,
+        "y": 0,
+        "width": 1,
+        "height": 1
+      },
+      "baselineY": 1,
+      "centerX": 0.5,
+      "fit": "contain",
+      "overlayAnchors": []
     }
   ]
 }

@@ -17,6 +17,15 @@ public enum PluginSeasonalMotion {
         let duration = scene.intensity == .low ? 12.0 : 24.0
         guard (try? scene.validate()) != nil, elapsed.isFinite, elapsed >= 0,
               elapsed < duration, scene.intensity != .off, !scene.holiday.isReflective, overlay != .none else { return [] }
+        if overlay == .fireworks {
+            guard scene.holiday == .independence,scene.isHoliday else{return []}
+            let count=scene.intensity == .low ? 72:192
+            return (0..<count).map { i in
+                let burst=i/24,ray=i%24,age=(elapsed+Double(burst)*0.37).truncatingRemainder(dividingBy:3.2),radius=0.015+age*0.035
+                let angle=Double(ray)*Double.pi/12,centerX=0.13+Double((burst*31)%74)/100,centerY=0.10+Double(burst%3)*0.11
+                return .init(kind:.star,x:centerX+cos(angle)*radius,y:centerY+sin(angle)*radius+age*age*0.006,size:1.5,rotation:angle,phase:Double(burst),opacity:min(1,elapsed/0.6)*max(0,1-age/3.2)*0.85)
+            }
+        }
         return (0..<scene.particleCap).map { i in
             let kind: PluginSeasonalParticle.Kind
             switch overlay {
@@ -27,7 +36,7 @@ public enum PluginSeasonalMotion {
             case .bats: kind = i % 3 == 0 ? .bat : .leaf
             case .hearts: kind = .heart
             case .confetti: kind = .confetti
-            case .none: kind = .star
+            case .none,.fireworks: kind = .star
             }
             let phase=elapsed * (kind == .bat ? 5.5 : 1.6) + Double(i)*1.9
             let drift=sin(elapsed*0.7+Double(i))*0.025

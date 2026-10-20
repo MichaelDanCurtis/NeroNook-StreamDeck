@@ -1,7 +1,7 @@
 import Foundation
 
-/// Bundled raster layers are pre-rendered original 3D art, never downloaded
-/// scenes or screenshots of UI. Catalog basenames cannot address arbitrary files.
+/// Bundled original art combines authored 3D renders and generated scenery.
+/// It never contains UI screenshots; catalog basenames cannot address arbitrary files.
 public struct PluginSeasonalArtAsset: Codable, Equatable, Sendable {
     public struct Files: Codable, Equatable, Sendable { public var light:String; public var dark:String }
     public struct Anchor: Codable, Equatable, Sendable {
@@ -44,7 +44,7 @@ public struct PluginSeasonalArtCatalog: Codable, Equatable, Sendable {
     public var version:Int
     public var assets:[PluginSeasonalArtAsset]
     public func validate() throws {
-        guard version == 1,assets.count <= 64,Set(assets.map(\.id)).count == assets.count else { throw ModuleProblem("Unsupported seasonal artwork catalog.") }
+        guard version == 1,assets.count <= 96,Set(assets.map(\.id)).count == assets.count else { throw ModuleProblem("Unsupported seasonal artwork catalog.") }
         try assets.forEach { try $0.validate() }
     }
     public static let bundled:Self? = {
@@ -70,23 +70,30 @@ public struct PluginSeasonalArtLayer: Codable, Equatable, Sendable, Identifiable
     public var firstDay:Int
     public var depth:Double
     public var mirrored:Bool
+    public var lastDay:Int? = nil
+    public var backdrop:Bool? = nil
+    public var motion:PluginSeasonalSpriteMotion? = nil
 }
-public enum PluginSeasonalOverlay: String, Codable, Sendable { case snow, sparks, petals, leaves, bats, hearts, confetti, none }
+public enum PluginSeasonalOverlay: String, Codable, Sendable { case fireworks, snow, sparks, petals, leaves, bats, hearts, confetti, none }
 public struct PluginSeasonalArtPlan: Codable, Equatable, Sendable {
     public var version=1
     public var scene:PluginSeasonalScene
     public var layout:PluginSeasonalSurfaceLayout
     public var layers:[PluginSeasonalArtLayer]
     public var overlay:PluginSeasonalOverlay
-    public var animationSeconds:Double { scene.intensity == .off || scene.holiday.isReflective ? 0 : scene.intensity == .low ? 12 : 24 }
+    public var message:String? = nil
+    public var beams:Int? = nil
+    public var quietWelcome:Bool? = nil
+    public var animationSeconds:Double { scene.intensity == .off || (scene.holiday.isReflective && !(scene.holiday == .veterans && scene.isHoliday)) ? 0 : scene.intensity == .low ? 12 : 24 }
     public func validate(catalog:PluginSeasonalArtCatalog) throws {
         try scene.validate();try layout.validate();try catalog.validate()
-        guard version == 1,layers.count <= 48,Set(layers.map(\.id)).count == layers.count,
+        guard message.map({$0.utf8.count<=1024}) ?? true, beams.map({(0...2).contains($0)}) ?? true, version == 1,layers.count <= 48,Set(layers.map(\.id)).count == layers.count,
               !scene.holiday.isReflective || overlay == .none else { throw ModuleProblem("Unsupported seasonal layer plan.") }
         for layer in layers {
             guard layer.id.range(of:"^[a-z][a-z0-9.-]{0,95}$",options:.regularExpression) != nil,
                   catalog.asset(layer.asset) != nil,(1...scene.totalDays).contains(layer.firstDay),
-                  layer.firstDay <= scene.day,layer.depth.isFinite,(-1...1).contains(layer.depth),
+                  layer.firstDay <= scene.day,(layer.lastDay ?? scene.totalDays) >= scene.day,layer.depth.isFinite,(-1...1).contains(layer.depth),
+                  layer.lastDay.map({ (layer.firstDay...scene.totalDays).contains($0) }) ?? true,
                   layer.depth < 0 || !layer.frame.intersects(layout.avatar) else { throw ModuleProblem("Invalid seasonal layer instance.") }
             try layer.frame.validate()
         }
@@ -95,6 +102,8 @@ public struct PluginSeasonalArtPlan: Codable, Equatable, Sendable {
     /// text/control masks belong to each plugin's local layout adapter.
     public static func make(scene:PluginSeasonalScene?,layout:PluginSeasonalSurfaceLayout = .voice,catalog:PluginSeasonalArtCatalog? = .bundled) -> Self? {
         guard let scene,let catalog,(try? scene.validate()) != nil,(try? layout.validate()) != nil else { return nil }
+        if scene.holiday == .juneteenth { return nil }
+        if ![.christmas,.newYear,.valentines].contains(scene.holiday) { return story(scene:scene,layout:layout,catalog:catalog) }
         var layers:[PluginSeasonalArtLayer]=[]
         let floor=min(0.68,max(0.24,layout.avatar.y+layout.avatar.height)),cx=layout.avatar.x+layout.avatar.width/2
         func add(_ id:String,_ asset:String,_ day:Int,_ x:Double,_ y:Double,_ w:Double,_ h:Double,_ depth:Double = -0.2,_ mirror:Bool = false) {
@@ -112,6 +121,10 @@ public struct PluginSeasonalArtPlan: Codable, Equatable, Sendable {
                 let asset=d.asset == .candyCane ? "candy-cane" : d.asset.rawValue
                 add(d.id,asset,d.firstDay,isCentral ? cx+(f.x-0.5)*scale:f.x,isCentral ? floor+(f.y-0.5)*scale:f.y,isCentral ? f.width*scale:f.width,isCentral ? f.height*scale:f.height,d.depth < 0 ? d.depth:-0.05,d.variant%2 == 1 && [.garland,.stocking].contains(d.asset))
             }
+            if scene.isHoliday {
+                add("train.engine","train",12,0.18,0.58,0.22,0.09)
+                layers[layers.count-1].motion = .train
+            }
             overlay = .snow
         } else {
             let heroes:[String],accents:[String]
@@ -123,7 +136,7 @@ public struct PluginSeasonalArtPlan: Codable, Equatable, Sendable {
             case .easter: heroes=["spring-eggs","spring-flowers"];accents=["spring-flowers"];overlay = .petals
             case .mothersDay: heroes=["rose-bouquet","heart"];accents=["spring-flowers"];overlay = .petals
             case .fathersDay: heroes=["blue-bouquet","star"];accents=["star"];overlay = .sparks
-            case .memorial,.veterans: heroes=["memorial-candle","laurel"];accents=["laurel"];overlay = .none
+            case .remembrance911,.memorial,.veterans: heroes=["memorial-candle","laurel"];accents=["laurel"];overlay = .none
             case .juneteenth: heroes=["juneteenth-ribbon","star"];accents=["star"];overlay = .sparks
             case .independence: heroes=["civic-ribbon","star"];accents=["star","civic-ribbon"];overlay = .sparks
             case .labor: heroes=["gear","laurel"];accents=["spring-flowers"];overlay = .none

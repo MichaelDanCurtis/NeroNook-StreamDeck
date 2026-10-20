@@ -51,7 +51,7 @@ public struct PluginHolidaySurface<Content:View>: View {
         let quiet=appearance.increasedContrast || contrast == .increased
         ZStack {
             if let plan,!quiet,let catalog=PluginSeasonalArtCatalog.bundled {
-                PluginSeasonalRasterLayer(plan:plan,catalog:catalog,dark:appearance.scheme == .dark)
+                PluginSeasonalRasterLayer(plan:plan,catalog:catalog,dark:appearance.scheme == .dark,enabled:visible && !reducedMotion && !appearance.reduceMotion && !reducedTransparency && !appearance.reduceTransparency)
                 PluginSeasonalRasterOverlay(plan:plan,catalog:catalog,enabled:visible && !reducedMotion && !appearance.reduceMotion && !reducedTransparency && !appearance.reduceTransparency)
                     .mask(PluginHolidayMask(regions:(try? layout.decorationRegions(protectAvatar:false)) ?? []))
             }
@@ -77,18 +77,68 @@ private struct PluginSeasonalRasterLayer:View {
     let plan:PluginSeasonalArtPlan
     let catalog:PluginSeasonalArtCatalog
     let dark:Bool
+    let enabled:Bool
+    @State private var running=false
+    @State private var start=Date()
+    @State private var deadline=Date.distantPast
+    @State private var presentationID=""
+    @State private var epoch=UUID()
+    private var sceneID:String { plan.scene.celebrationKey+".\(plan.scene.day).\(plan.scene.intensity.rawValue)" }
     var body:some View {
+        TimelineView(.animation(minimumInterval:1.0/12,paused:!running)) { timeline in
+            let elapsed=running ? max(0,timeline.date.timeIntervalSince(start)):-1
+            ZStack {
+                canvas(backdrop:true,elapsed:elapsed)
+                canvas(backdrop:false,elapsed:elapsed).mask(PluginHolidayMask(regions:(try? plan.layout.decorationRegions(protectAvatar:false)) ?? []))
+            }
+        }.task(id:sceneID+".\(enabled)") {
+            let token=UUID();epoch=token;running=false
+            if presentationID != sceneID { presentationID=sceneID;start=Date();deadline=start.addingTimeInterval(plan.animationSeconds) }
+            guard enabled,plan.animationSeconds>0,plan.layers.contains(where:{$0.motion != nil}),deadline>Date() else{return}
+            running=true
+            do {try await Task.sleep(nanoseconds:UInt64(max(0,deadline.timeIntervalSinceNow)*1_000_000_000))}catch{}
+            guard epoch == token else{return};running=false
+        }.onDisappear {epoch=UUID();running=false}.allowsHitTesting(false).accessibilityHidden(true)
+    }
+    func canvas(backdrop:Bool,elapsed:Double)->some View {
         Canvas { context,size in
-            for layer in plan.layers.sorted(by:{$0.depth < $1.depth}) {
+            for (index,layer) in plan.layers.sorted(by:{$0.depth < $1.depth}).enumerated() where (layer.backdrop == true) == backdrop {
                 guard let asset=catalog.asset(layer.asset),let image=PluginSeasonalRasterImages.image(dark ? asset.files.dark:asset.files.light) else { continue }
                 let frame=asset.fitted(in:layer.frame,viewportAspect:size.width/max(1,size.height))
-                let rect=CGRect(x:frame.x*size.width,y:frame.y*size.height,width:frame.width*size.width,height:frame.height*size.height)
+                var rect=CGRect(x:frame.x*size.width,y:frame.y*size.height,width:frame.width*size.width,height:frame.height*size.height)
                 var local=context
-                if layer.mirrored { local.translateBy(x:rect.midX*2,y:0);local.scaleBy(x:-1,y:1) }
-                local.draw(image,in:rect)
+                if backdrop {
+                    let target=CGRect(x:layer.frame.x*size.width,y:layer.frame.y*size.height,width:layer.frame.width*size.width,height:layer.frame.height*size.height)
+                    let scale=max(target.width/Double(asset.width),target.height/Double(asset.height))
+                    rect=CGRect(x:target.midX-Double(asset.width)*scale/2,y:target.midY-Double(asset.height)*scale/2,width:Double(asset.width)*scale,height:Double(asset.height)*scale)
+                    local.clip(to:Path(target));local.opacity=dark ? 0.66:0.42
+                }
+                let pose=PluginSeasonalStoryMotion.pose(layer.motion,elapsed:elapsed,seed:index)
+                local.translateBy(x:pose.x*size.width,y:pose.y*size.height)
+                local.translateBy(x:rect.midX,y:rect.midY);local.rotate(by:.radians(pose.rotation));local.scaleBy(x:(layer.mirrored ? -1:1)*pose.scaleX,y:1);local.translateBy(x:-rect.midX,y:-rect.midY)
+                if layer.motion == .flag,elapsed>=0 {
+                    for strip in 0..<96 {
+                        var column=local
+                        let x=rect.minX+rect.width*Double(strip)/96
+                        column.clip(to:Path(CGRect(x:x,y:rect.minY-8,width:rect.width/96+0.5,height:rect.height+16)))
+                        let shift=sin(Double(strip)*6/96-elapsed*2)*rect.height*0.004
+                        column.draw(image,in:rect.offsetBy(dx:0,dy:shift))
+                    }
+                } else {local.draw(image,in:rect)}
             }
-        }.mask(PluginHolidayMask(regions:(try? plan.layout.decorationRegions(protectAvatar:false)) ?? []))
-            .allowsHitTesting(false).accessibilityHidden(true)
+            if backdrop,(plan.beams ?? 0)>0 {
+                for beam in 0..<(plan.beams ?? 0) {
+                    let x=size.width*(0.43+Double(beam)*0.055),origin=size.height*0.65
+                    context.drawLayer { light in
+                        let rect=Path(CGRect(x:x-18,y:0,width:36,height:origin))
+                        light.fill(rect,with:.linearGradient(Gradient(colors:[Color.blue.opacity(0),Color.blue.opacity(0.14),Color.cyan.opacity(0.68),Color.blue.opacity(0.14),Color.blue.opacity(0)]),startPoint:.init(x:x-18,y:0),endPoint:.init(x:x+18,y:0)))
+                        light.blendMode = .destinationIn
+                        light.fill(rect,with:.linearGradient(Gradient(stops:[.init(color:.white.opacity(0.094),location:0),.init(color:.white,location:0.88),.init(color:.clear,location:1)]),startPoint:.init(x:x,y:0),endPoint:.init(x:x,y:origin)))
+                    }
+                    context.fill(Path(ellipseIn:CGRect(x:x-22,y:origin-12,width:44,height:24)),with:.radialGradient(Gradient(colors:[Color.cyan.opacity(0.35),.clear]),center:.init(x:x,y:origin),startRadius:0,endRadius:24))
+                }
+            }
+        }
     }
 }
 
