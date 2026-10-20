@@ -61,6 +61,24 @@
         }
       },
       "SupportedInMultiActions": false
+    },
+    {
+      "UUID": "cafe.nero.neronook.stop",
+      "Name": "Stop Run",
+      "Icon": "images/stop",
+      "Tooltip": "Stop the exact active run paired with this action; wait for its confirmed outcome.",
+      "Controllers": [
+        "Keypad"
+      ],
+      "States": [
+        {
+          "Image": "images/stopkey",
+          "TitleAlignment": "middle",
+          "FontSize": "12"
+        }
+      ],
+      "PropertyInspectorPath": "inspector.html",
+      "SupportedInMultiActions": false
     }
   ],
   "Author": "NeroNook",
@@ -72,7 +90,7 @@
   "Category": "NeroNook",
   "CategoryIcon": "images/action",
   "URL": "https://docs.elgato.com/streamdeck/sdk/",
-  "Version": "0.2.0.0",
+  "Version": "0.3.2.0",
   "UUID": "cafe.nero.neronook",
   "SDKVersion": 2,
   "Software": {

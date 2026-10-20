@@ -9,8 +9,10 @@ public struct PluginManifest: Codable, Equatable, Sendable, Identifiable {
     public var capabilities: [String]
     public var launchMode: String? = nil
     public var icon: PluginIcon? = nil
+    public var assistant: PluginAssistantIdentity? = nil
     public func validate() throws {
         try icon?.validate()
+        try assistant?.validate()
         guard launchMode == nil || launchMode == "application" else { throw ModuleProblem("Unsupported plugin launch mode.") }
         guard apiVersion == 1 else { throw ModuleProblem("This plugin requires a different plugin interface version.") }
         guard id.range(of: #"^[a-z][a-z0-9]*(\.[a-z][a-z0-9-]*)+$"#, options: .regularExpression) != nil,
@@ -29,12 +31,14 @@ public struct PluginField: Codable, Equatable, Sendable {
     public init(_ label: String, _ value: String, symbol: String? = nil) { self.label = label; self.value = value; self.symbol = symbol }
 }
 public struct PluginAction: Codable, Equatable, Sendable, Identifiable {
+    public enum Placement: String, Codable, Sendable { case primary, menu }
     public var id: String
     public var label: String
     public var enabled: Bool
     public var symbol: String?
     public var confirmation: String?
-    public init(_ id: String, _ label: String, enabled: Bool = true, symbol: String? = nil, confirmation: String? = nil) { self.id = id; self.label = label; self.enabled = enabled; self.symbol = symbol; self.confirmation = confirmation }
+    public var placement: Placement?
+    public init(_ id: String, _ label: String, enabled: Bool = true, symbol: String? = nil, confirmation: String? = nil, placement: Placement? = nil) { self.id = id; self.label = label; self.enabled = enabled; self.symbol = symbol; self.confirmation = confirmation; self.placement = placement }
 }
 public struct PluginSection: Codable, Equatable, Sendable {
     public var title: String
@@ -93,13 +97,22 @@ public struct PluginSnapshot: Codable, Equatable, Sendable {
     public var badge: String?
     public var panels: [PluginPanel]?
     public var iconPNG: Data?
-    public init(title: String, status: String, activity: String = "", progress: Double? = nil, fields: [PluginField] = [], actions: [PluginAction] = [], metrics: [PluginField]? = nil, sections: [PluginSection]? = nil, media: PluginMedia? = nil, badge: String? = nil, panels: [PluginPanel]? = nil, iconPNG: Data? = nil) {
+    public var volumeEndpoints: [PluginVolumeEndpoint]?
+    public var attention: PluginAttention?
+    public var assistantSpeech: PluginAvatarSpeech? = nil
+    public init(title: String, status: String, activity: String = "", progress: Double? = nil, fields: [PluginField] = [], actions: [PluginAction] = [], metrics: [PluginField]? = nil, sections: [PluginSection]? = nil, media: PluginMedia? = nil, badge: String? = nil, panels: [PluginPanel]? = nil, iconPNG: Data? = nil, volumeEndpoints: [PluginVolumeEndpoint]? = nil, attention: PluginAttention? = nil) {
         self.title = title; self.status = status; self.activity = activity; self.progress = progress; self.fields = fields; self.actions = actions
-        self.metrics = metrics; self.sections = sections; self.media = media; self.badge = badge; self.panels = panels; self.iconPNG = iconPNG
+        self.metrics = metrics; self.sections = sections; self.media = media; self.badge = badge; self.panels = panels; self.iconPNG = iconPNG; self.volumeEndpoints = volumeEndpoints; self.attention = attention
     }
     public var displayActions: [PluginAction] { actions + (panels ?? []).flatMap { ($0.cards ?? []).flatMap(\.actions) + ($0.collection?.displayActions ?? []) } }
     public func enabledDisplayAction(_ id: String) -> PluginAction? { displayActions.first { $0.id == id && $0.enabled } }
     public func validate() throws {
+        try attention?.validate()
+        try assistantSpeech?.validate()
+        if let endpoints = volumeEndpoints {
+            guard endpoints.count <= 8, Set(endpoints.map(\.id)).count == endpoints.count else { throw ModuleProblem("Invalid volume endpoint list.") }
+            for endpoint in endpoints { try endpoint.validate() }
+        }
         var known: [String: PluginAction] = [:]
         for action in displayActions {
             guard ModulePackage.validKey(action.id), !action.label.isEmpty, action.label.count <= 80,
@@ -169,13 +182,23 @@ public struct PluginMessage: Codable, Sendable {
     public var snapshot: PluginSnapshot?
     public var features: [String]?
     public var visible: Bool?
+    /// Optional visibility-v2: presentation is distinct from inline camera demand.
+    public var presented: Bool?
+    public var mediaVisible: Bool?
     public var frame: PluginFrame?
     public var bus: PluginBusMessage?
     public var agenda: PluginAgenda?
     public var agendaDate: Date?
     public var viewEvent: PluginViewEvent?
-    public init(type: String, pluginID: String, session: UUID, sequence: UInt64 = 0, action: String? = nil, snapshot: PluginSnapshot? = nil, features: [String]? = nil, visible: Bool? = nil, frame: PluginFrame? = nil, bus: PluginBusMessage? = nil, agenda: PluginAgenda? = nil, agendaDate: Date? = nil, viewEvent: PluginViewEvent? = nil) {
-        self.type = type; self.pluginID = pluginID; self.session = session; self.sequence = sequence; self.action = action; self.snapshot = snapshot; self.features = features; self.visible = visible; self.frame = frame; self.bus = bus; self.agenda = agenda; self.agendaDate = agendaDate; self.viewEvent = viewEvent
+    public var volumeCommand: PluginVolumeCommand?
+    public var volumeResult: PluginVolumeResult?
+    public var viewResource: PluginViewResourceRequest?
+    public var viewResourceResult: PluginViewResourceResult?
+    public var viewResourceCancel: UUID?
+    public var appearance: PluginAppearanceDelivery?
+    public var caption: PluginTransientCaption?
+    public init(type: String, pluginID: String, session: UUID, sequence: UInt64 = 0, action: String? = nil, snapshot: PluginSnapshot? = nil, features: [String]? = nil, visible: Bool? = nil, presented: Bool? = nil, mediaVisible: Bool? = nil, frame: PluginFrame? = nil, bus: PluginBusMessage? = nil, agenda: PluginAgenda? = nil, agendaDate: Date? = nil, viewEvent: PluginViewEvent? = nil, volumeCommand: PluginVolumeCommand? = nil, volumeResult: PluginVolumeResult? = nil, viewResource: PluginViewResourceRequest? = nil, viewResourceResult: PluginViewResourceResult? = nil, viewResourceCancel: UUID? = nil, caption: PluginTransientCaption? = nil, appearance: PluginAppearanceDelivery? = nil) {
+        self.type = type; self.pluginID = pluginID; self.session = session; self.sequence = sequence; self.action = action; self.snapshot = snapshot; self.features = features; self.visible = visible; self.presented = presented; self.mediaVisible = mediaVisible; self.frame = frame; self.bus = bus; self.agenda = agenda; self.agendaDate = agendaDate; self.viewEvent = viewEvent; self.volumeCommand = volumeCommand; self.volumeResult = volumeResult; self.viewResource = viewResource; self.viewResourceResult = viewResourceResult; self.viewResourceCancel = viewResourceCancel; self.caption = caption; self.appearance = appearance
     }
     public func encoded() throws -> Data {
         var data = try JSONEncoder().encode(self)

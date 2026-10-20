@@ -69,11 +69,22 @@ public struct PluginRegisteredAction: Codable, Equatable, Sendable, Identifiable
     public var effect: Effect
     public var cancellable: Bool
     public var timeoutSeconds: Double
-    public init(_ id: String, title: String, input: PluginValueSchema = .init(), output: PluginValueSchema = .init(), effect: Effect = .readOnly, cancellable: Bool = false, timeoutSeconds: Double = 30) {
-        self.id = id; self.title = title; self.input = input; self.output = output; self.effect = effect; self.cancellable = cancellable; self.timeoutSeconds = timeoutSeconds
+    /// Optional actions-long-running-v1: absolute completion limit. Valid progress
+    /// renews the ordinary inactivity timeout, never this limit or a Stop deadline.
+    public var completionTimeoutSeconds: Double?
+    /// Optional action-stream-v1, scoped to this reviewed live run. Never replayed.
+    public var streamInput: PluginValueSchema?
+    public var streamOutput: PluginValueSchema?
+    public init(_ id: String, title: String, input: PluginValueSchema = .init(), output: PluginValueSchema = .init(), effect: Effect = .readOnly, cancellable: Bool = false, timeoutSeconds: Double = 30, completionTimeoutSeconds: Double? = nil, streamInput: PluginValueSchema? = nil, streamOutput: PluginValueSchema? = nil) {
+        self.id = id; self.title = title; self.input = input; self.output = output; self.effect = effect; self.cancellable = cancellable; self.timeoutSeconds = timeoutSeconds; self.completionTimeoutSeconds = completionTimeoutSeconds; self.streamInput = streamInput; self.streamOutput = streamOutput
     }
     public func validate() throws {
         guard ModulePackage.validKey(id), !title.isEmpty, title.count <= 80, timeoutSeconds.isFinite, (1...300).contains(timeoutSeconds) else { throw ModuleProblem("Invalid registered action.") }
+        if let limit = completionTimeoutSeconds { guard limit.isFinite, limit >= timeoutSeconds, limit <= 86400 else { throw ModuleProblem("Invalid completion limit.") } }
+        if streamInput != nil || streamOutput != nil {
+            guard streamInput != nil, streamOutput != nil, cancellable, completionTimeoutSeconds != nil else { throw ModuleProblem("Invalid streaming action.") }
+            try streamInput?.validate(); try streamOutput?.validate()
+        }
         try input.validate(); try output.validate()
     }
 }
@@ -107,19 +118,40 @@ public enum PluginRunPhase: String, Codable, Sendable {
     case waitingReview, running, cancelling, succeeded, failed, cancelled, interrupted
     public var terminal: Bool { [.succeeded, .failed, .cancelled, .interrupted].contains(self) }
 }
+/// Optional run-display-v1. Display only: never grants approval or authority.
+/// Step counts describe workflow progress, not a remote job's percentage.
+public struct PluginRunDisplay: Codable, Equatable, Sendable {
+    public var title: String
+    public var step: String
+    public var detail: String
+    public var completedSteps: Int
+    public var totalSteps: Int
+    public var needsReview: Bool
+    public init(title: String, step: String = "", detail: String = "", completedSteps: Int = 0, totalSteps: Int = 0, needsReview: Bool = false) {
+        self.title = title; self.step = step; self.detail = detail; self.completedSteps = completedSteps; self.totalSteps = totalSteps; self.needsReview = needsReview
+    }
+    public func validate() throws {
+        guard title.count <= 80, step.count <= 80, detail.count <= 300,
+              (0...64).contains(totalSteps), (0...totalSteps).contains(completedSteps) else { throw ModuleProblem("Invalid run display.") }
+    }
+}
 public struct PluginRunUpdate: Codable, Equatable, Sendable {
     public var phase: PluginRunPhase
     public var progress: Double?
     public var message: String
     public var values: [String: PluginValue]
-    public init(_ phase: PluginRunPhase, progress: Double? = nil, message: String = "", values: [String: PluginValue] = [:]) { self.phase = phase; self.progress = progress; self.message = message; self.values = values }
+    public var display: PluginRunDisplay?
+    public init(_ phase: PluginRunPhase, progress: Double? = nil, message: String = "", values: [String: PluginValue] = [:], display: PluginRunDisplay? = nil) { self.phase = phase; self.progress = progress; self.message = message; self.values = values; self.display = display }
     public func validate() throws {
         guard progress.map({ $0.isFinite && (0...1).contains($0) }) ?? true, message.count <= 300, values.count <= 16 else { throw ModuleProblem("Invalid execution update.") }
+        try display?.validate()
     }
 }
 public struct PluginBusMessage: Codable, Equatable, Sendable {
-    public enum Operation: String, Codable, Sendable { case register, discover, catalog, invoke, execute, cancel, update, subscribe, unsubscribe, publish, event, failure }
+    public enum Operation: String, Codable, Sendable { case register, discover, catalog, invoke, execute, cancel, update, subscribe, unsubscribe, publish, event, failure, stream, requestAccess, accessGranted }
+    public var access: PluginActionAccessRequest?
     public var operation: Operation
+    public var frame: PluginRunFrame?
     public var requestID: UUID
     public var address: PluginActionAddress?
     public var registration: PluginRegistration?
@@ -130,8 +162,8 @@ public struct PluginBusMessage: Codable, Equatable, Sendable {
     public var lifetime: Double?
     public var error: String?
     public var complete: Bool?
-    public init(_ operation: Operation, requestID: UUID = UUID(), address: PluginActionAddress? = nil, registration: PluginRegistration? = nil, catalog: [PluginCatalogEntry]? = nil, values: [String: PluginValue]? = nil, update: PluginRunUpdate? = nil, lifetime: Double? = nil, error: String? = nil, complete: Bool? = nil) {
-        self.operation = operation; self.requestID = requestID; self.address = address; self.registration = registration; self.catalog = catalog; self.values = values; self.update = update; self.lifetime = lifetime; self.error = error; self.complete = complete
+    public init(_ operation: Operation, requestID: UUID = UUID(), address: PluginActionAddress? = nil, registration: PluginRegistration? = nil, catalog: [PluginCatalogEntry]? = nil, values: [String: PluginValue]? = nil, update: PluginRunUpdate? = nil, lifetime: Double? = nil, error: String? = nil, complete: Bool? = nil, frame: PluginRunFrame? = nil, access: PluginActionAccessRequest? = nil) {
+        self.access = access; self.frame = frame; self.operation = operation; self.requestID = requestID; self.address = address; self.registration = registration; self.catalog = catalog; self.values = values; self.update = update; self.lifetime = lifetime; self.error = error; self.complete = complete
     }
 }
 
@@ -157,4 +189,15 @@ public struct PluginCatalogAccumulator: Sendable {
         return false
     }
     public mutating func reset() { entries = []; pending = []; generation = nil }
+}
+
+/// Ordered, bounded, point-to-point action data. Contains no routing authority.
+public struct PluginRunFrame: Codable, Equatable, Sendable {
+    public var sequence: UInt64
+    public var values: [String: PluginValue]
+    public init(sequence: UInt64, values: [String: PluginValue]) { self.sequence = sequence; self.values = values }
+    public func validate(_ schema: PluginValueSchema) throws {
+        guard sequence < 200000, try JSONEncoder().encode(values).count <= 8192 else { throw ModuleProblem("Action frame exceeds its limit.") }
+        try schema.validate(values)
+    }
 }

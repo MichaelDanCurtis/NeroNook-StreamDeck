@@ -36,7 +36,7 @@ let moduleID = "cafe.nero.plugin.streamdeck"
     func applicationDidFinishLaunching(_ notification: Notification) {
         NSApp.setActivationPolicy(.accessory)
         guard hosted else { showWindow(); return }
-        inputReader.start { [weak self] message in Task { @MainActor in
+        inputReader.start { [weak self] message in DispatchQueue.main.async {
             guard let message else { NSApp.terminate(nil); return }
             self?.receive(message)
         } }
@@ -47,19 +47,19 @@ let moduleID = "cafe.nero.plugin.streamdeck"
         guard message.pluginID == moduleID else { NSApp.terminate(nil); return }
         if session == nil {
             guard message.type == "hello", message.features?.contains("actions-v1") == true else { NSApp.terminate(nil); return }
-            session = message.session
+            session = message.session; PluginAppearanceStore.shared.beginSession(pluginID:moduleID,session:message.session)
             presentation = message.features?.contains("presentation-v1") == true
             customViews = message.features?.contains("custom-views-v1") == true
-            emit("ready", features: ["actions-v1", "dashboard-v1", "panels-v1"] + (customViews ? ["custom-views-v1"] : []) + (presentation ? ["presentation-v1"] : []))
+            emit("ready", features: ["appearance-v1", "actions-v1", "dashboard-v1", "panels-v1"] + (customViews ? ["custom-views-v1"] : []) + (presentation ? ["presentation-v1"] : []) + (message.features?.contains("run-display-v1") == true ? ["run-display-v1"] : []))
             send(.init(.register, registration: .init(actions: [
                 .init("check_connection", title: "Check Stream Deck connection", output: .init([.init("connected", .boolean), .init("message", .string)]))
             ], channels: [.init("connection", title: "Stream Deck connection", kind: .state, schema: .init([.init("connected", .boolean), .init("message", .string)]))])))
-            do { try listener.listen { [weak self] peer in Task { @MainActor in self?.accept(peer) } } }
+            do { try listener.listen { [weak self] peer in DispatchQueue.main.async { self?.accept(peer) } } }
             catch { connection = "Local bridge unavailable: \(error.localizedDescription)" }
             timer = Timer(timeInterval: 2, repeats: true) { [weak self] _ in Task { @MainActor in self?.tick() } }; RunLoop.main.add(timer!, forMode: .common)
             tick(); return
         }
-        guard session == message.session else { NSApp.terminate(nil); return }
+        guard session == message.session else { NSApp.terminate(nil); return }; if message.type == "appearance" { _ = PluginAppearanceStore.shared.receive(message); return }
         if message.type == "viewEvent", let event = message.viewEvent { do { try handleView(event) } catch { notice = error.localizedDescription }; tick(); return }
         if message.type == "bus", let bus = message.bus { receiveBus(bus) }
         else if message.type == "action" {
@@ -78,12 +78,14 @@ let moduleID = "cafe.nero.plugin.streamdeck"
             forward(bus); return
         }
         if bus.operation == .update, let update = bus.update {
+            guard requests.contains(bus.requestID) else { return }
             notice = ""
             lastResult = update.message.isEmpty ? update.phase.rawValue : update.message
-            if update.phase == .succeeded { runCount += 1; lastResult = update.values["message"]?.display ?? "Action completed" }
+            if update.phase == .succeeded { runCount += 1; lastResult = update.values["message"]?.display ?? (update.message.isEmpty ? "Action completed" : update.message) }
             if requests.contains(bus.requestID) { forward(bus); if update.phase.terminal { requests.remove(bus.requestID) } }
         } else if bus.operation == .event { forward(bus) }
         else if bus.operation == .failure {
+            guard requests.contains(bus.requestID) else { return }
             notice = ""; lastResult = bus.error ?? "Action rejected"
             forward(bus); requests.remove(bus.requestID)
         }
@@ -91,19 +93,25 @@ let moduleID = "cafe.nero.plugin.streamdeck"
     private func accept(_ client: LocalConnection) {
         guard peer == nil else { client.close(); return }
         peer = client; let id = UUID(); peerID = id; connection = "Connected to Elgato Stream Deck"
-        client.received = { [weak self] data in Task { @MainActor in
+        // The reset/device/key stream is ordered. Independent Tasks may apply a
+        // reset after its keys; the serial main queue preserves wire order.
+        client.received = { [weak self] data in DispatchQueue.main.async {
             guard let self, self.peerID == id else { return }
             do {
                 if let wire = try? JSONDecoder().decode(DeckWire.self, from: data) { self.receiveDeck(wire); return }
                 let bus = try JSONDecoder().decode(PluginBusMessage.self, from: data)
                 guard [.discover, .invoke, .cancel, .subscribe, .unsubscribe].contains(bus.operation) else { client.close(); return }
                 if bus.operation == .invoke { guard self.requests.count < 32 else { self.forward(.init(.failure, requestID: bus.requestID, error: "Too many pending actions")); return }; self.requests.insert(bus.requestID) }
+                if bus.operation == .cancel { guard self.requests.contains(bus.requestID) else { return } }
                 if bus.operation == .subscribe, let address = bus.address { guard self.channels.count < 32 || self.channels.contains(address) else { return }; self.channels.insert(address) }
                 if bus.operation == .unsubscribe, let address = bus.address { self.channels.remove(address) }
                 self.send(bus)
+                if bus.operation == .invoke, self.presentation,
+                   let entry = self.catalog.entries.first(where: { $0.address == bus.address }),
+                   entry.action?.effect != .readOnly { self.emit("present") }
             } catch { client.close() }
         } }
-        client.ended = { [weak self] in Task { @MainActor in
+        client.ended = { [weak self] in DispatchQueue.main.async {
             guard let self, self.peerID == id else { return }
             for request in self.requests { self.send(.init(.cancel, requestID: request)) }
             for address in self.channels { self.send(.init(.unsubscribe, address: address)) }
@@ -112,7 +120,7 @@ let moduleID = "cafe.nero.plugin.streamdeck"
         client.start(); send(.init(.discover)); tick()
     }
     private func forward(_ bus: PluginBusMessage) { if let data = try? JSONEncoder().encode(bus) { peer?.send(data) } }
-    func check() { send(.init(.invoke, address: .init(moduleID, "check_connection"))) }
+    func check() { let id = UUID(); requests.insert(id); send(.init(.invoke, requestID: id, address: .init(moduleID, "check_connection"))) }
     private func send(_ bus: PluginBusMessage) { emit("bus", bus: bus) }
     func emit(_ type: String, features: [String]? = nil, snapshot: PluginSnapshot? = nil, bus: PluginBusMessage? = nil) {
         guard let session else { return }; if type != "ready" { sequence += 1 }
@@ -127,7 +135,7 @@ let moduleID = "cafe.nero.plugin.streamdeck"
         if window == nil {
             let w = NSWindow(contentRect: NSRect(x: 0, y: 0, width: 960, height: 540), styleMask: [.titled, .closable, .resizable, .miniaturizable], backing: .buffered, defer: false)
             w.title = "Stream Deck"; w.contentMinSize = NSSize(width: 720, height: 430)
-            w.contentView = NSHostingView(rootView: DeckWindow(model: self)); w.isReleasedWhenClosed = false; w.center(); window = w
+            w.contentView = NSHostingView(rootView: DeckWindow(model: self).pluginThemed()); w.isReleasedWhenClosed = false; w.center(); window = w
         }
         window?.makeKeyAndOrderFront(nil); NSApp.activate(ignoringOtherApps: true)
     }
