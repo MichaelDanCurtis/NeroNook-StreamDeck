@@ -1,3 +1,4 @@
+#if canImport(AppKit) && !targetEnvironment(macCatalyst)
 import AppKit
 import SwiftUI
 
@@ -19,3 +20,5 @@ import SwiftUI
     public func close(_ id: String) { windows.removeValue(forKey: id)?.close() }
     public func closeAll() { for window in windows.values { window.close() }; windows = [:] }
 }
+
+#endif

@@ -141,10 +141,14 @@ public struct PluginRunUpdate: Codable, Equatable, Sendable {
     public var message: String
     public var values: [String: PluginValue]
     public var display: PluginRunDisplay?
-    public init(_ phase: PluginRunPhase, progress: Double? = nil, message: String = "", values: [String: PluginValue] = [:], display: PluginRunDisplay? = nil) { self.phase = phase; self.progress = progress; self.message = message; self.values = values; self.display = display }
+    /// Optional ephemeral output meter. Carries no audio, voice identity or input data.
+    public var speech: PluginSpeechPlayback?
+    public init(_ phase: PluginRunPhase, progress: Double? = nil, message: String = "", values: [String: PluginValue] = [:], display: PluginRunDisplay? = nil, speech: PluginSpeechPlayback? = nil) { self.phase = phase; self.progress = progress; self.message = message; self.values = values; self.display = display; self.speech = speech }
     public func validate() throws {
         guard progress.map({ $0.isFinite && (0...1).contains($0) }) ?? true, message.count <= 300, values.count <= 16 else { throw ModuleProblem("Invalid execution update.") }
         try display?.validate()
+        try speech?.validate()
+        guard speech == nil || phase == .running else { throw ModuleProblem("Speech meters are transient running updates.") }
     }
 }
 public struct PluginBusMessage: Codable, Equatable, Sendable {

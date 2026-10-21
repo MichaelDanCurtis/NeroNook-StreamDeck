@@ -32,6 +32,8 @@ public struct PluginAttention: Codable, Equatable, Sendable {
 /// Fixed, bundled imagery. This is not a general file-serving API.
 public enum PluginVisualAssets {
     public static func url(path: String) -> URL? {
+        if let seasonal = PluginSeasonalArtCatalog.url(path:path) { return seasonal }
+        if path == "/__nook_sdk__/avatar-renderer.js" { return Bundle.module.url(forResource:"avatar-renderer",withExtension:"js") }
         if path == "/__nook_sdk__/elemental-model-viewer.js" {
             return Bundle.module.url(forResource:"elemental-model-viewer",withExtension:"js")
         }
@@ -59,5 +61,5 @@ public enum PluginVisualAssets {
               bytes.count <= 2 * 1024 * 1024 else { return nil }
         return bytes
     }
-    public static func mime(path: String) -> String { path.hasSuffix(".glb") ? "model/gltf-binary" : path == "/__nook_sdk__/elemental-model-viewer.js" ? "text/javascript" : "image/png" }
+    public static func mime(path: String) -> String { path.hasSuffix(".glb") ? "model/gltf-binary" : path.hasSuffix(".js") ? "text/javascript" : "image/png" }
 }

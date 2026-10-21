@@ -136,8 +136,16 @@ public struct PluginAppearanceContext: Codable, Equatable, Sendable {
     public var reduceTransparency = false
     public var reduceMotion = false
     public var increasedContrast = false
+    /// Transient presentation guard; never changes permissions or saved preferences.
+    public var avatarReactionsSuppressed: Bool? = nil
     public var avatars: PluginAvatarSelection?
     public var seasonalScene: PluginSeasonalScene?
+    /// Expanded calendar travels in a new optional key. The legacy seasonalScene
+    /// key is restricted to the original three holidays for older SDK clients.
+    public var seasonalSurface: PluginSeasonalScene?
+    /// New calendar values must not enter the earlier optional fields.
+    public var seasonalStory: PluginSeasonalScene?
+    public var activeSeasonalScene: PluginSeasonalScene? { seasonalStory ?? seasonalSurface ?? seasonalScene }
     public var palette: PluginThemePalette { theme.palette(scheme) }
     public init(surfaceID: String = "system", screenNumber: UInt32? = nil, revision: UInt64 = 0, mode: PluginAppearanceMode = .system, scheme: PluginColorScheme = .light, theme: PluginTheme = .nearlyNothing, reduceTransparency: Bool = false, reduceMotion: Bool = false, increasedContrast: Bool = false) {
         self.surfaceID=surfaceID; self.screenNumber=screenNumber; self.revision=revision; self.mode=mode; self.scheme=scheme; self.theme=theme
@@ -148,6 +156,8 @@ public struct PluginAppearanceContext: Codable, Equatable, Sendable {
         try theme.validate()
         try avatars?.validate()
         try seasonalScene?.validate()
+        try seasonalSurface?.validate()
+        try seasonalStory?.validate()
     }
 }
 

@@ -57,6 +57,8 @@ public enum PluginSpeechConversation {
     @Published public private(set) var active = false
     @Published public private(set) var ready = false
     @Published public private(set) var controls: PluginSpeechConversationControls?
+    @Published public private(set) var expressionCapability: PluginExpressionCapability?
+    private var expressionSequence = 0
     private var request: UUID?
     private var entry: PluginCatalogEntry?
     private var awaitingAccess = false
@@ -106,6 +108,19 @@ public enum PluginSpeechConversation {
         let frame = PluginRunFrame(sequence: inputSequence, values: values); try frame.validate(PluginSpeechConversation.input)
         inputSequence += 1; send?(.init(.stream, requestID: request, address: entry.address, frame: frame))
     }
+    /// Use only after this exact run advertises support. Oversized segments retain
+    /// their unchanged plain speech path rather than losing text to metadata.
+    public func speak(_ text: String, cue: PluginExpressionCue? = nil, turn: Int) throws -> PluginExpressionSegment? {
+        guard cue != nil, expressionCapability != nil, let request, text.utf8.count <= 1200 else {
+            try input(PluginSpeechConversation.values("speak", text: text, turn: turn)); return nil
+        }
+        let segment = PluginExpressionSegment(session: request, sequence: expressionSequence, turn: turn, text: text, cue: cue)
+        guard let encoded = try? segment.encoded() else {
+            try input(PluginSpeechConversation.values("speak", text: text, turn: turn)); return nil
+        }
+        try input(PluginSpeechConversation.values("speakExpression", text: encoded, turn: turn)); expressionSequence += 1
+        return segment
+    }
     public func setInterruptionSensitivity(_ value: Int) throws {
         guard controls != nil, (0...100).contains(value) else { throw ModuleProblem("Open Voice settings or wait for a compatible Talk session.") }
         try input(PluginSpeechConversation.values("sensitivity", text: String(value)))
@@ -126,6 +141,9 @@ public enum PluginSpeechConversation {
                 guard !awaitingAccess, entry != nil else { throw ModuleProblem("Voice permission has not been granted.") }
                 guard frame.sequence == outputSequence else { throw ModuleProblem("Voice stream was interrupted.") }
                 try frame.validate(PluginSpeechConversation.output); outputSequence += 1
+                if case .string("expressionCapabilities") = frame.values["kind"], case .string(let text) = frame.values["text"] {
+                    expressionCapability = PluginExpressionCapability.decode(text)
+                }
                 if case .string("controls") = frame.values["kind"], case .string(let text) = frame.values["text"] {
                     controls = try PluginSpeechConversationControls.decode(text)
                 }
@@ -141,5 +159,5 @@ public enum PluginSpeechConversation {
         let old = request; retire(); status = "Conversation stopped"
         if let old { send?(.init(.cancel, requestID: old)) }
     }
-    private func retire() { let wasActive = active; active = false; ready = false; controls = nil; awaitingAccess = false; request = nil; entry = nil; if wasActive { ended?() } }
+    private func retire() { let wasActive = active; active = false; ready = false; controls = nil; expressionCapability = nil; expressionSequence = 0; awaitingAccess = false; request = nil; entry = nil; if wasActive { ended?() } }
 }

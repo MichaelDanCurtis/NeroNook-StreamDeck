@@ -31,9 +31,9 @@ html[data-nook-ui][data-nook-contrast="true"] :is(button:not([data-nook-hardware
 
 html[data-nook-ui] .nook-presence{background:radial-gradient(circle at 30% 25%,#fff 5%,#f6efec 32%,#ddd8e8 63%,#bccfe1 100%);border:1px solid #ffffffb3;box-shadow:0 0 0 3px #cdbb9f15,inset -3px -3px 9px #b6b3c233;color:var(--nook-text)}
 html[data-nook-ui][data-nook-reduce-motion="true"] .voiceOrb{transform:none!important}
-"""# + PluginGlassWeb.css + PluginGlassWeb.presenceCSS + PluginDotWaveWeb.css + PluginAvatarWeb.css + PluginConversationWeb.css
+"""# + PluginGlassWeb.css + PluginGlassWeb.presenceCSS + PluginDotWaveWeb.css + PluginAvatarWeb.css + PluginConversationWeb.css + PluginHolidayWeb.css
     public static var bootstrap: String {
         let literal = String(data: try! JSONEncoder().encode(css), encoding: .utf8)!
-        return "(() => { const apply=()=>{ if (!document.documentElement.hasAttribute('data-nook-ui')) return; const s=document.createElement('style'); s.id='nook-interface'; s.textContent=\(literal); document.head.append(s); }; if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',apply,{once:true}); else apply(); })();" + PluginDotWaveWeb.bootstrap + PluginMotionWeb.bootstrap + PluginAvatarWeb.bootstrap
+        return "(() => { const apply=()=>{ if (!document.documentElement.hasAttribute('data-nook-ui')) return; const s=document.createElement('style'); s.id='nook-interface'; s.textContent=\(literal); document.head.append(s); }; if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',apply,{once:true}); else apply(); })();" + PluginDotWaveWeb.bootstrap + PluginMotionWeb.bootstrap + PluginAvatarWeb.bootstrap + PluginHolidayWeb.bootstrap
     }
 }

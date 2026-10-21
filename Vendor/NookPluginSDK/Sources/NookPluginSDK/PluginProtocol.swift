@@ -99,6 +99,8 @@ public struct PluginSnapshot: Codable, Equatable, Sendable {
     public var iconPNG: Data?
     public var volumeEndpoints: [PluginVolumeEndpoint]?
     public var attention: PluginAttention?
+    /// Ephemeral capture/playback occupancy; host aggregates without interpreting provider state.
+    public var avatarInteractionBusy: Bool? = nil
     public var assistantSpeech: PluginAvatarSpeech? = nil
     public init(title: String, status: String, activity: String = "", progress: Double? = nil, fields: [PluginField] = [], actions: [PluginAction] = [], metrics: [PluginField]? = nil, sections: [PluginSection]? = nil, media: PluginMedia? = nil, badge: String? = nil, panels: [PluginPanel]? = nil, iconPNG: Data? = nil, volumeEndpoints: [PluginVolumeEndpoint]? = nil, attention: PluginAttention? = nil) {
         self.title = title; self.status = status; self.activity = activity; self.progress = progress; self.fields = fields; self.actions = actions
