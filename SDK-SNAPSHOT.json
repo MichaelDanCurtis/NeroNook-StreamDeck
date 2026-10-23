@@ -440,7 +440,8 @@
     "Sources/NookPluginSDK/Resources/SeasonalArt/seasonal-wreath-dark.png": "7bb845b71b0226d7466739d5b6447a876b6b024d8c76c6d7dc92da78d55e3d6f",
     "Sources/NookPluginSDK/Resources/SeasonalArt/seasonal-wreath-light.png": "c17f25f1d72eec7a21b3b69326b708d90326f1c5f85b1bbab50839998747ae05",
     "Sources/NookPluginSDK/Resources/SeasonalArt/seasonal-zombie-hand-dark.png": "39fd8b80734482cdcbe424595454aa59778e15def562bd6d24b844191b7a58c5",
-    "Sources/NookPluginSDK/Resources/SeasonalArt/seasonal-zombie-hand-light.png": "706a44169f9b4b5669cb962195efcf240ab88123ac49f03d0075cfba42812f7d"
+    "Sources/NookPluginSDK/Resources/SeasonalArt/seasonal-zombie-hand-light.png": "706a44169f9b4b5669cb962195efcf240ab88123ac49f03d0075cfba42812f7d",
+    "Sources/NookPluginSDK/PluginMailReply.swift": "cae8751b8fdeca28b88188ca2d8aa8d5e7d540c73e424b978860119aec46f928"
   },
   "extensions": {
     "actions-long-running-v1": "0.27.0",
