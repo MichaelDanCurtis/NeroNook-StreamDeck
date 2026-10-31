@@ -1,0 +1,27 @@
+{
+  "schema": "fuego-nero-flow.capabilities.v1",
+  "packageName": "@fuego-nero/flow-contract",
+  "packageVersion": "0.1.0-alpha.1",
+  "assemblyState": "unreleased-awaiting-joint-pin-acknowledgement",
+  "negotiationRequires": ["packageName", "packageVersion", "sourceManifestSHA256"],
+  "schemaId": "urn:fuego-nero-flow:review-candidate:0.1.0-proposal-5",
+  "grantSubjectNamespace": "normalized-remote-fuego-caller",
+  "sdkActorBindingImplemented": false,
+  "wireVersions": {
+    "definition": "fuego-nero-flow/0.1-candidate.1",
+    "invocation": "fuego-nero-flow-invocation/0.1-candidate.1",
+    "receipt": "fuego-nero-flow-receipt/0.1-candidate.1",
+    "control": "fuego-nero-flow-control/0.1-candidate.1",
+    "result": "fuego-nero-flow-result/0.1-candidate.1",
+    "reply": "fuego-nero-flow-reply/0.1-candidate.1"
+  },
+  "receiptReasonExtensions": ["execution-failed"],
+  "validationNodeSubset": ["input@1", "map@1", "condition@1", "capability@1", "review@1", "result@1"],
+  "valueSubset": ["string-utf8-max2048", "safe-integer", "boolean", "explicit-null"],
+  "parsedProfiles": ["local-ephemeral", "server-durable"],
+  "executionRuntimes": [],
+  "authenticationImplementation": false,
+  "durableStoreImplementation": false,
+  "receiverModel": "conformance-only-not-exported",
+  "registryPublication": false
+}

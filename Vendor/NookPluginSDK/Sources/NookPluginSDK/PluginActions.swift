@@ -22,8 +22,9 @@ public struct PluginParameter: Codable, Equatable, Sendable {
     public var required: Bool
     public var minimum: Double?
     public var maximum: Double?
-    public init(_ name: String, _ kind: Kind, required: Bool = true, minimum: Double? = nil, maximum: Double? = nil) {
-        self.name = name; self.kind = kind; self.required = required; self.minimum = minimum; self.maximum = maximum
+    public var structured: PluginStructuredSchema?
+    public init(_ name: String, _ kind: Kind, required: Bool = true, minimum: Double? = nil, maximum: Double? = nil, structured: PluginStructuredSchema? = nil) {
+        self.name = name; self.kind = kind; self.required = required; self.minimum = minimum; self.maximum = maximum; self.structured = structured
     }
 }
 public struct PluginValueSchema: Codable, Equatable, Sendable {
@@ -32,6 +33,7 @@ public struct PluginValueSchema: Codable, Equatable, Sendable {
     public func validate() throws {
         guard fields.count <= 16, Set(fields.map(\.name)).count == fields.count else { throw ModuleProblem("Invalid value schema.") }
         for f in fields {
+            if let structured = f.structured { guard f.kind == .string else { throw ModuleProblem("Structured JSON requires an explicit text transport field.") }; try structured.validate() }
             guard ModulePackage.validKey(f.name), f.minimum?.isFinite ?? true, f.maximum?.isFinite ?? true,
                   f.kind == .number || (f.minimum == nil && f.maximum == nil),
                   f.minimum == nil || f.maximum == nil || f.minimum! <= f.maximum! else { throw ModuleProblem("Invalid parameter constraint.") }
@@ -43,7 +45,9 @@ public struct PluginValueSchema: Codable, Equatable, Sendable {
         for f in fields {
             guard let value = values[f.name] else { if f.required { throw ModuleProblem("Missing argument: \(f.name)") }; continue }
             switch (f.kind, value) {
-            case (.string, .string(let v)): guard v.utf8.count <= 2048 else { throw ModuleProblem("Text argument is too long.") }
+            case (.string, .string(let v)):
+                guard v.utf8.count <= 2048 else { throw ModuleProblem("Text argument is too long.") }
+                if let schema = f.structured { try schema.validate(PluginStructuredValue.parse(v)) }
             case (.number, .number(let v)): guard v.isFinite, f.minimum.map({ v >= $0 }) ?? true, f.maximum.map({ v <= $0 }) ?? true else { throw ModuleProblem("Number is outside its limits.") }
             case (.boolean, .boolean): break
             default: throw ModuleProblem("Argument type does not match its schema.")
@@ -75,8 +79,10 @@ public struct PluginRegisteredAction: Codable, Equatable, Sendable, Identifiable
     /// Optional action-stream-v1, scoped to this reviewed live run. Never replayed.
     public var streamInput: PluginValueSchema?
     public var streamOutput: PluginValueSchema?
-    public init(_ id: String, title: String, input: PluginValueSchema = .init(), output: PluginValueSchema = .init(), effect: Effect = .readOnly, cancellable: Bool = false, timeoutSeconds: Double = 30, completionTimeoutSeconds: Double? = nil, streamInput: PluginValueSchema? = nil, streamOutput: PluginValueSchema? = nil) {
-        self.id = id; self.title = title; self.input = input; self.output = output; self.effect = effect; self.cancellable = cancellable; self.timeoutSeconds = timeoutSeconds; self.completionTimeoutSeconds = completionTimeoutSeconds; self.streamInput = streamInput; self.streamOutput = streamOutput
+    /// Negotiated action-policy-v1; nil is unknown. Declaration only, never a grant or sandbox.
+    public var executionPolicy: PluginActionExecutionPolicy?
+    public init(_ id: String, title: String, input: PluginValueSchema = .init(), output: PluginValueSchema = .init(), effect: Effect = .readOnly, cancellable: Bool = false, timeoutSeconds: Double = 30, completionTimeoutSeconds: Double? = nil, streamInput: PluginValueSchema? = nil, streamOutput: PluginValueSchema? = nil, executionPolicy: PluginActionExecutionPolicy? = nil) {
+        self.id = id; self.title = title; self.input = input; self.output = output; self.effect = effect; self.cancellable = cancellable; self.timeoutSeconds = timeoutSeconds; self.completionTimeoutSeconds = completionTimeoutSeconds; self.streamInput = streamInput; self.streamOutput = streamOutput; self.executionPolicy = executionPolicy
     }
     public func validate() throws {
         guard ModulePackage.validKey(id), !title.isEmpty, title.count <= 80, timeoutSeconds.isFinite, (1...300).contains(timeoutSeconds) else { throw ModuleProblem("Invalid registered action.") }
@@ -85,6 +91,7 @@ public struct PluginRegisteredAction: Codable, Equatable, Sendable, Identifiable
             guard streamInput != nil, streamOutput != nil, cancellable, completionTimeoutSeconds != nil else { throw ModuleProblem("Invalid streaming action.") }
             try streamInput?.validate(); try streamOutput?.validate()
         }
+        try executionPolicy?.validate()
         try input.validate(); try output.validate()
     }
 }

@@ -1,0 +1,25 @@
+{
+  "packageName": "@fuego-nero/flow-contract",
+  "packageVersion": "0.1.0-alpha.1",
+  "commit": "98acb599d73617802493a4c94567bb21fa43f29c",
+  "sourceManifestSHA256": "ef6aaaf8d7cd563b9c780fd1c29d537da12e75b837247a6345236092c56b5dd7",
+  "acceptedBy": "nero-flow-20261024-assembly-004-acceptance",
+  "narrativeAmendment": "0.1.1",
+  "wireContractRevision": "0.1.0",
+  "files": [
+    {
+      "sourcePath": "conformance/schema.json",
+      "vendoredFile": "flow-contract-schema.json",
+      "bytes": 27730,
+      "sha256": "0273157c6fa7d1282fcfb66cf2a0d48818398b564dc961dbdfaf56c97361beef"
+    },
+    {
+      "sourcePath": "capabilities.json",
+      "vendoredFile": "flow-contract-capabilities.json",
+      "bytes": 1313,
+      "sha256": "7615926c5da16aceffb74a2771b04a99b68a919c747b2738fcefa71190873acd"
+    }
+  ],
+  "runtimeExports": [],
+  "authenticationImplemented": false
+}

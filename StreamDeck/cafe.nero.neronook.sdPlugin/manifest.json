@@ -90,7 +90,7 @@
   "Category": "NeroNook",
   "CategoryIcon": "images/action",
   "URL": "https://docs.elgato.com/streamdeck/sdk/",
-  "Version": "0.3.2.0",
+  "Version": "0.3.7.0",
   "UUID": "cafe.nero.neronook",
   "SDKVersion": 2,
   "Software": {
