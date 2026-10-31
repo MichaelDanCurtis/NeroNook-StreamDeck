@@ -20,19 +20,38 @@ let moduleID = "cafe.nero.plugin.streamdeck"
     @Published var menuContext = ""
     @Published var menuSelected = ""
     @Published var notice = ""
+    @Published var rebinding: DeckRebindingView?
+    @Published var rebindRequests = DeckRebindingUIRequests()
+    @Published var rebindPresentation = DeckRebindingPresentation()
+    @Published var rebindFeedback = ""
+    var rebindRequestPending: Bool { rebindRequests.waiting }
+    var rebindAckTask: Task<Void, Never>?
+    var rebindWindow: NSWindow?
+    @Published var recovery: DeckRecoveryView?
+    @Published var recoveryPresentation = DeckRecoveryPresentation()
+    @Published var recoveryRequests = DeckRecoveryUIRequests()
+    @Published var recoveryFeedback = ""
+    var recoveryAckTask: Task<Void, Never>?
+    var recoveryWindowController: DeckRecoveryWindowController?
+    var recoveryRequestPending: Bool { recoveryRequests.waiting }
     var customViews = false
     var presentation = false
     private var session: UUID?
     private var sequence: UInt64 = 0
     private var timer: Timer?
-    private var listener = LocalBridge()
+    private let listener: LocalBridge
     var peer: LocalConnection?
     private var peerID = UUID()
+    var rebindPeerEpoch: UUID { peerID }
     private let inputReader = ModuleInputReader()
     var catalog = PluginCatalogAccumulator()
     private var requests = Set<UUID>()
     private var channels = Set<PluginActionAddress>()
     let hosted = CommandLine.arguments.contains("--neronook-plugin")
+    init(scope: BridgeScope = .live) {
+        listener = LocalBridge(scope: scope)
+        super.init()
+    }
     func applicationDidFinishLaunching(_ notification: Notification) {
         NSApp.setActivationPolicy(.accessory)
         guard hosted else { showWindow(); return }
@@ -42,7 +61,7 @@ let moduleID = "cafe.nero.plugin.streamdeck"
         } }
     }
 
-    func applicationWillTerminate(_ notification: Notification) { peer?.close(); listener.stop() }
+    func applicationWillTerminate(_ notification: Notification) { recoveryAckTask?.cancel(); rebindAckTask?.cancel(); peer?.close(); listener.stop() }
     private func receive(_ message: PluginMessage) {
         guard message.pluginID == moduleID else { NSApp.terminate(nil); return }
         if session == nil {
@@ -72,9 +91,15 @@ let moduleID = "cafe.nero.plugin.streamdeck"
             send(.init(.update, requestID: bus.requestID, update: .init(.succeeded, values: ["connected": .boolean(peer != nil), "message": .string(peer == nil ? "Core connected; Elgato plugin not connected yet" : "Core and Elgato plugin connected")]))); return
         }
         if bus.operation == .catalog {
+            // Invalidate before parsing/forwarding any fragment. The companion
+            // advances its generation even for an identical complete catalog.
+            rebindPresentation.catalogStarted()
             defer { objectWillChange.send(); tick() }
-            do { if try catalog.receive(bus) { actionCount = catalog.entries.filter { $0.action != nil }.count } }
-            catch { catalog.reset(); actionCount = 0 }
+            do { if try catalog.receive(bus) {
+                actionCount = catalog.entries.filter { $0.action != nil }.count
+                rebindPresentation.catalogCompleted()
+            } }
+            catch { catalog.reset(); actionCount = 0; rebindPresentation.catalogFailed() }
             forward(bus); return
         }
         if bus.operation == .update, let update = bus.update {
@@ -93,12 +118,23 @@ let moduleID = "cafe.nero.plugin.streamdeck"
     private func accept(_ client: LocalConnection) {
         guard peer == nil else { client.close(); return }
         peer = client; let id = UUID(); peerID = id; connection = "Connected to Elgato Stream Deck"
+        rebindPresentation.peerChanged(to: id)
+        recovery = nil; recoveryPresentation.reset(); recoveryRequests.reset(); recoveryAckTask?.cancel(); recoveryAckTask = nil
+        recoveryFeedback = "Reading durable recovery status…"
         // The reset/device/key stream is ordered. Independent Tasks may apply a
         // reset after its keys; the serial main queue preserves wire order.
         client.received = { [weak self] data in DispatchQueue.main.async {
             guard let self, self.peerID == id else { return }
             do {
-                if let wire = try? JSONDecoder().decode(DeckWire.self, from: data) { self.receiveDeck(wire); return }
+                if let wire = try? JSONDecoder().decode(DeckWire.self, from: data) {
+                    let inventoryReset = wire.deckEvent == "reset"
+                    if inventoryReset { self.rebindPresentation.reset() }
+                    self.receiveDeck(wire)
+                    // Inventory reset may follow an earlier discovery response.
+                    // Request a real fresh catalog; this cannot revive an old review.
+                    if inventoryReset { self.send(.init(.discover)) }
+                    return
+                }
                 let bus = try JSONDecoder().decode(PluginBusMessage.self, from: data)
                 guard [.discover, .invoke, .cancel, .subscribe, .unsubscribe].contains(bus.operation) else { client.close(); return }
                 if bus.operation == .invoke { guard self.requests.count < 32 else { self.forward(.init(.failure, requestID: bus.requestID, error: "Too many pending actions")); return }; self.requests.insert(bus.requestID) }
@@ -116,8 +152,15 @@ let moduleID = "cafe.nero.plugin.streamdeck"
             for request in self.requests { self.send(.init(.cancel, requestID: request)) }
             for address in self.channels { self.send(.init(.unsubscribe, address: address)) }
             self.requests = []; self.channels = []; self.devices = [:]; self.slots = [:]; self.menuContext = ""; self.notice = "Elgato disconnected. Nothing was replayed."; self.peer = nil; self.connection = "Waiting for the Elgato plugin"
+            self.rebindPresentation.peerChanged(to: nil)
+            self.rebinding = nil; self.rebindRequests.reset(); self.rebindAckTask?.cancel()
+            self.rebindAckTask = nil; self.rebindFeedback = "Elgato disconnected. Previous reconnection results are not automatically restored."
+            self.recoveryPresentation.reset()
+            self.recoveryRequests.reset(); self.recoveryAckTask?.cancel(); self.recoveryAckTask = nil
+            self.recoveryFeedback = "Elgato disconnected. Last recovery information is historical; nothing was retried or cleared."
         } }
         client.start(); send(.init(.discover)); tick()
+        submitRecovery("recovery_status", .init(offset: 0)) // read-only, never opens UI or replays work
     }
     private func forward(_ bus: PluginBusMessage) { if let data = try? JSONEncoder().encode(bus) { peer?.send(data) } }
     func check() { let id = UUID(); requests.insert(id); send(.init(.invoke, requestID: id, address: .init(moduleID, "check_connection"))) }

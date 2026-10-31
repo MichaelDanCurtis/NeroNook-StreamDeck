@@ -1,7 +1,7 @@
 {
   "id": "cafe.nero.plugin.streamdeck",
   "name": "Stream Deck",
-  "version": "0.3.4",
+  "version": "0.3.7",
   "apiVersion": 1,
   "summary": "Run saved workflows from your deck, follow live steps and stop the exact paired run.",
   "capabilities": [

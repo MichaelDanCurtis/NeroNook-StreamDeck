@@ -53,4 +53,41 @@ final class RunTests: XCTestCase {
         var invalid = settings; invalid["arguments"] = "{\"id\":\"other\"}"
         XCTAssertThrowsError(try DeckMapping.validate(settings: invalid, slot: stop, catalog: [entry]))
     }
+    func testMappingChangeDetectsActivePairedContextOldAndNewAddressesAcrossPhases() throws {
+        let replacement = PluginActionAddress("fixture.workflows", "replacement")
+        let barrier = DeckMappingSaveBarrier(context: "stop-key", oldAddress: entry.address, newAddress: replacement)
+        for phase in [PluginRunPhase.running, .waitingReview, .cancelling] {
+            var runs = DeckRuns(); let id = try runs.begin(context: "run-key", entry: entry)
+            XCTAssertTrue(runs.receive(.init(.update, requestID: id, update: .init(phase))))
+            XCTAssertTrue(runs.hasActive(context: barrier.context, addresses: barrier.addresses), "Paired Stop lost active \(phase) run")
+            XCTAssertTrue(runs.hasActive(context: "run-key", addresses: []))
+            XCTAssertFalse(runs.hasActive(context: "unrelated-key", addresses: [replacement]))
+            XCTAssertEqual(try runs.cancel(entry.address), id)
+            XCTAssertTrue(runs.hasActive(context: barrier.context, addresses: barrier.addresses))
+            XCTAssertTrue(runs.receive(.init(.update, requestID: id, update: .init(.cancelled))))
+            XCTAssertFalse(runs.hasActive(context: barrier.context, addresses: barrier.addresses))
+        }
+        var replacementRuns = DeckRuns()
+        var destination = entry; destination.address = replacement; destination.action!.id = replacement.name
+        _ = try replacementRuns.begin(context: "other-destination-key", entry: destination)
+        XCTAssertTrue(replacementRuns.hasActive(context: barrier.context, addresses: barrier.addresses))
+    }
+    func testPendingMappingExcludesSameContextAndBothAddressesButLeavesUnrelatedRunsAlone() {
+        let destination = PluginActionAddress("fixture.workflows", "new")
+        let barrier = DeckMappingSaveBarrier(context: "changing-key", oldAddress: entry.address, newAddress: destination)
+        XCTAssertTrue(barrier.blocksRun(context: "changing-key", address: .init("fixture.other", "unrelated")))
+        XCTAssertTrue(barrier.blocksRun(context: "other-old-key", address: entry.address))
+        XCTAssertTrue(barrier.blocksRun(context: "menu-dial", address: destination))
+        XCTAssertFalse(barrier.blocksRun(context: "other-key", address: .init("fixture.other", "unrelated")))
+        XCTAssertEqual(barrier.addresses, Set([entry.address, destination]))
+    }
+    func testMappingQueryDoesNotTurnInterruptedRecordIntoConfirmedRemoteStop() throws {
+        var runs = DeckRuns(); let id = try runs.begin(context: "run-key", entry: entry)
+        runs.disconnected()
+        XCTAssertFalse(runs.hasActive(context: "run-key", addresses: [entry.address]))
+        XCTAssertEqual(runs.latest(entry.address)?.id, id)
+        XCTAssertEqual(runs.latest(entry.address)?.update.phase, .interrupted)
+        XCTAssertEqual(runs.latest(entry.address)?.status, "Check outcome")
+        XCTAssertNil(try runs.cancel(entry.address))
+    }
 }
