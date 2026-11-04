@@ -74,7 +74,7 @@
     "Sources/NookPluginSDK/PluginTransientCaption.swift": "50e2fdf485b4d1430bcf2d3309772d66d447925a8c296d73943b114fae5b324d",
     "Sources/NookPluginSDK/PluginViewResource.swift": "1996c42635520c2d9b0a7989c0f443af555f152f9a967f10fba4f62e9d61272d",
     "Sources/NookPluginSDK/PluginVolume.swift": "d0010f18b047d510f8a6668780d9cfe2c69c946c23a4f2142299e066eced6cfd",
-    "Sources/NookPluginSDK/PluginWebSurface.swift": "85b6ad5b214710a78ed9bf363f4eaa53bad2d5c536721bf171bd5e233b0df155",
+    "Sources/NookPluginSDK/PluginWebSurface.swift": "6dcdc4bc9ecb59454b3d5183c47045affc570d99ccb6c8ba0ba26ba98efdf325",
     "Sources/NookPluginSDK/PluginWindows.swift": "2ea278320ce26006dcc32243e01f8824e8904d17902171d07752372391502d3c",
     "Sources/NookPluginSDK/PluginWorkspace.swift": "0d22e8cebfeba4e3652dc68b9a7397a2b17ff2c6de63e72590a94f990efff720",
     "Sources/NookPluginSDK/Resources/FlowContract/flow-contract-capabilities.json": "7615926c5da16aceffb74a2771b04a99b68a919c747b2738fcefa71190873acd",

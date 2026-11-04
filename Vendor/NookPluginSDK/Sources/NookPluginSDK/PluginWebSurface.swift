@@ -5,8 +5,22 @@ import Combine
 
 private final class PluginVisibleWebView:WKWebView {
     var visibilityChanged:((Bool)->Void)?
+    private var interactionEnabled = true
     private var observations:[AnyCancellable]=[]
     private var lastVisible:Bool?
+    override var acceptsFirstResponder: Bool { interactionEnabled && super.acceptsFirstResponder }
+    override var canBecomeKeyView: Bool { interactionEnabled && super.canBecomeKeyView }
+    override func becomeFirstResponder() -> Bool { interactionEnabled && super.becomeFirstResponder() }
+    override func hitTest(_ point: NSPoint) -> NSView? { interactionEnabled ? super.hitTest(point) : nil }
+    func setInteractionEnabled(_ enabled: Bool) {
+        interactionEnabled = enabled
+        setAccessibilityHidden(!enabled)
+        if !enabled, let window, let responder = window.firstResponder as? NSView,
+           responder === self || responder.isDescendant(of: self) {
+            // The host selects the review's focus. Re-enabling never steals it.
+            window.makeFirstResponder(nil)
+        }
+    }
     var actuallyVisible:Bool { window.map { $0.isVisible && !$0.isMiniaturized && $0.occlusionState.contains(.visible) && !isHiddenOrHasHiddenAncestor } ?? false }
     override func viewDidMoveToWindow() {
         super.viewDidMoveToWindow();observations.removeAll()
@@ -25,6 +39,7 @@ private final class PluginVisibleWebView:WKWebView {
 /// Same custom view renderer for a host stage or a plugin-owned standalone window.
 public struct PluginWebSurface: NSViewRepresentable {
     @Environment(\.pluginAppearance) private var appearance
+    @Environment(\.isEnabled) private var isEnabled
     public let root: URL
     public let panelID: String
     public let definition: PluginCustomView
@@ -35,6 +50,7 @@ public struct PluginWebSurface: NSViewRepresentable {
     }
     public func makeCoordinator() -> Coordinator { Coordinator(self) }
     public func makeNSView(context: Context) -> WKWebView {
+        context.coordinator.owner = self
         let configuration = WKWebViewConfiguration()
         configuration.websiteDataStore = .nonPersistent()
         configuration.preferences.javaScriptCanOpenWindowsAutomatically = false
@@ -50,12 +66,14 @@ public struct PluginWebSurface: NSViewRepresentable {
         }
         web.navigationDelegate = context.coordinator; web.uiDelegate = context.coordinator
         web.underPageBackgroundColor = .clear
+        context.coordinator.updateInteraction(web)
         context.coordinator.load(web)
         return web
     }
     public func updateNSView(_ web: WKWebView, context: Context) {
         let previous = context.coordinator.owner
         context.coordinator.owner = self
+        context.coordinator.updateInteraction(web)
         if previous.root != root || previous.panelID != panelID || previous.definition.entry != definition.entry || previous.definition.revision != definition.revision || previous.definition.frames != definition.frames {
             context.coordinator.load(web)
         } else if previous.definition.state != definition.state || previous.definition.avatarPlayback != definition.avatarPlayback { context.coordinator.update(web) }
@@ -82,6 +100,33 @@ public struct PluginWebSurface: NSViewRepresentable {
       }) });
     })();
     """
+    /// This receiver lives only in WebKit's isolated client world. The page
+    /// cannot call it to re-enable input; native admission remains synchronous.
+    private static func interactionBootstrap(documentID: String, enabled: Bool) throws -> String {
+        let document = String(decoding: try JSONEncoder().encode(documentID), as: UTF8.self)
+        return """
+        (() => {
+          const documentID = \(document);
+          let serial = 0, enabled = \(enabled ? "true" : "false"), blocked = false, previousInert = false;
+          const apply = () => {
+            const root = document.documentElement;
+            if (!root) return;
+            if (!enabled) {
+              if (!blocked) { previousInert = root.inert; blocked = true; }
+              root.inert = true;
+              const focused = document.activeElement;
+              if (focused && typeof focused.blur === 'function') focused.blur();
+            } else if (blocked) { root.inert = previousInert; blocked = false; }
+          };
+          Object.defineProperty(window, '__nookInteractionReceive', { value: (nextEnabled, nextSerial, nextDocument) => {
+            if (nextDocument !== documentID || typeof nextEnabled !== 'boolean' || !Number.isSafeInteger(nextSerial) || nextSerial <= serial) return false;
+            serial = nextSerial; enabled = nextEnabled; apply(); return true;
+          }});
+          apply();
+          if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', apply, {once: true});
+        })();
+        """
+    }
     @MainActor public final class Coordinator: NSObject, WKURLSchemeHandler, WKNavigationDelegate, WKUIDelegate, WKScriptMessageHandlerWithReply {
         var owner: PluginWebSurface
         var active = true
@@ -89,6 +134,8 @@ public struct PluginWebSurface: NSViewRepresentable {
         private var appearanceDocument = UUID().uuidString
         private var appearanceSerial = 0
         private var lastAppearance: PluginAppearanceContext?
+        private var interactionSerial = 0
+        private var lastInteractionEnabled: Bool?
         private var eventsAt = Date.distantPast
         private var eventCount = 0
         private var assetBudget = PluginBundledAssetBudget()
@@ -101,13 +148,15 @@ public struct PluginWebSurface: NSViewRepresentable {
         private var pointerBusy=false, pointerPending=false
         private var pointerSample: PluginAvatarPointerSource.Sample?
         private var pointerEpoch=0
+        private var pointerRequested = false
         private let reactionAudioOwner=UUID()
         private var delegatedReaction:UUID?
         private var reactionAt=Date.distantPast
         func stopPointer() { PluginAvatarReactionAudio.shared.stop(owner:reactionAudioOwner); pointer.stop(); pointerEpoch += 1; pointerBusy=false; pointerPending=false; pointerSample=nil }
         private func trackPointer(_ web: WKWebView, enabled: Bool) {
+            pointerRequested = enabled
             guard active, loaded else { return }
-            if enabled && !owner.appearance.reduceMotion {
+            if enabled && owner.isEnabled && !owner.appearance.reduceMotion {
                 pointer.start(view:web) { [weak self,weak web] sample in
                     guard let self,let web,self.active,self.loaded else { return }
                     self.pointerSample=sample;self.pointerPending=true;self.flushPointer(web)
@@ -134,6 +183,28 @@ public struct PluginWebSurface: NSViewRepresentable {
         }
         func cancelResources() { stopDelegatedReaction(); let tasks = resourceTasks.values; resourceTasks.removeAll(); for task in tasks { task.cancel() } }
         init(_ owner: PluginWebSurface) { self.owner = owner }
+        func updateInteraction(_ web: WKWebView, force: Bool = false) {
+            let enabled = owner.isEnabled
+            (web as? PluginVisibleWebView)?.setInteractionEnabled(enabled)
+            guard active, owner.isEnabled == enabled, force || lastInteractionEnabled != enabled else { return }
+            let previous = lastInteractionEnabled
+            lastInteractionEnabled = enabled; interactionSerial += 1
+            let serial = interactionSerial, document = appearanceDocument
+            if !enabled {
+                // Only native-owned avatar reactions/pointer tracking stop.
+                // This does not cancel speech, a provider action or a job.
+                stopDelegatedReaction(); stopPointer()
+            } else if previous == false && pointerRequested { trackPointer(web, enabled: true) }
+            guard loaded, active, appearanceDocument == document,
+                  interactionSerial == serial, owner.isEnabled == enabled else { return }
+            Task { @MainActor [weak self, weak web] in
+                guard let self, let web, self.active, self.loaded,
+                      self.appearanceDocument == document, self.interactionSerial == serial,
+                      self.owner.isEnabled == enabled else { return }
+                _ = try? await web.callAsyncJavaScript("return window.__nookInteractionReceive(enabled, serial, document)",
+                    arguments: ["enabled": enabled, "serial": serial, "document": document], in: nil, contentWorld: .defaultClient)
+            }
+        }
         func seasonalVisibility(_ web:WKWebView,visible:Bool) {
             guard active,loaded else{return};if !visible {stopDelegatedReaction()};let document=appearanceDocument
             Task { @MainActor [weak self,weak web] in
@@ -144,10 +215,13 @@ public struct PluginWebSurface: NSViewRepresentable {
         func load(_ web: WKWebView) {
             cancelResources(); stopPointer(); loaded = false; active = true; assetBudget = PluginBundledAssetBudget()
             appearanceDocument=UUID().uuidString; appearanceSerial=0; lastAppearance=nil
+            interactionSerial = 0; lastInteractionEnabled = nil; pointerRequested = false
             do {
                 try owner.definition.validate()
                 let scripts = web.configuration.userContentController
                 scripts.removeAllUserScripts()
+                scripts.addUserScript(.init(source: try PluginWebSurface.interactionBootstrap(documentID: appearanceDocument, enabled: owner.isEnabled),
+                    injectionTime: .atDocumentStart, forMainFrameOnly: true, in: .defaultClient))
                 scripts.addUserScript(.init(source: try PluginThemeWeb.bootstrap(owner.appearance, documentID:appearanceDocument), injectionTime: .atDocumentStart, forMainFrameOnly: true))
                 scripts.addUserScript(.init(source: "Object.defineProperty(window, '__nookAvatarDocument', {value: \(String(decoding: try JSONEncoder().encode(appearanceDocument), as: UTF8.self))});", injectionTime: .atDocumentStart, forMainFrameOnly: true))
                 scripts.addUserScript(.init(source: PluginWebSurface.bridge, injectionTime: .atDocumentStart, forMainFrameOnly: true))
@@ -178,6 +252,7 @@ public struct PluginWebSurface: NSViewRepresentable {
         }
         public func webView(_ webView: WKWebView, didFinish navigation: WKNavigation!) {
             loaded = webView.url?.scheme == PluginViewResources.scheme; updateAppearance(webView); update(webView)
+            updateInteraction(webView, force: true)
             seasonalVisibility(webView,visible:(webView as? PluginVisibleWebView)?.actuallyVisible == true)
             let epoch=pointerEpoch
             Task { @MainActor [weak self,weak webView] in
@@ -262,6 +337,7 @@ public struct PluginWebSurface: NSViewRepresentable {
                       let body=message.body as? [String:Any],Set(body.keys)==Set(["kind","document"]),body["document"] as? String==appearanceDocument,
                       let kind=body["kind"] as? String,(["stop"]+PluginAvatarReaction.allCases.map(\.rawValue)).contains(kind) else { replyHandler(nil,"Character reaction unavailable.");return }
                 if kind=="stop" { stopDelegatedReaction();PluginAvatarReactionAudio.shared.stop(owner:reactionAudioOwner);replyHandler(["stopped":true],nil);return}
+                guard owner.isEnabled else { replyHandler(nil, "Character reaction unavailable."); return }
                 guard let reaction=PluginAvatarReaction(rawValue:kind),owner.appearance.avatars?.characterReactions != false,owner.appearance.avatarReactionsSuppressed != true,!owner.appearance.reduceMotion,
                       Date().timeIntervalSince(reactionAt)>=1 else {replyHandler(["duration":1.3],nil);return}
                 reactionAt=Date()
@@ -305,7 +381,7 @@ public struct PluginWebSurface: NSViewRepresentable {
                 trackPointer(web,enabled:enabled);replyHandler(["accepted":true],nil);return
             }
             do {
-                guard active, loaded, message.frameInfo.isMainFrame, message.frameInfo.request.url?.scheme == PluginViewResources.scheme,
+                guard active, loaded, owner.isEnabled, message.frameInfo.isMainFrame, message.frameInfo.request.url?.scheme == PluginViewResources.scheme,
                       message.frameInfo.request.url?.host == "surface", let body = message.body as? [String: Any],
                       Set(body.keys) == Set(["name", "values"]), let name = body["name"] as? String,
                       let values = body["values"] as? [String: Any], values.count <= 16,
