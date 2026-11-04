@@ -13,15 +13,6 @@ struct DeckSlot: Codable, Equatable {
     var isStop: Bool { action.hasSuffix(".stop") }
     var address: PluginActionAddress { .init(settings["provider"] ?? moduleID, settings["name"] ?? (isStatus ? "connection" : "check_connection")) }
 }
-struct DeckWire: Codable {
-    var deckEvent: String
-    var device: DeckDevice? = nil; var slot: DeckSlot? = nil
-    var context: String? = nil; var command: String? = nil; var revision: String? = nil
-    var settings: [String: String]? = nil; var request: UUID? = nil
-    var message: String? = nil; var selected: String? = nil
-    func encoded() -> Data? { try? JSONEncoder().encode(self) }
-}
-
 enum DeckMapping {
     static func validate(settings: [String: String], slot: DeckSlot, catalog: [PluginCatalogEntry]) throws {
         guard settings.count <= 5, Set(settings.keys).isSubset(of: ["provider", "name", "arguments", "field", "label"]), settings.values.allSatisfy({ $0.utf8.count <= 8192 }) else { throw ModuleProblem("Mapping is too large or contains unknown fields.") }
@@ -57,6 +48,10 @@ import AppKit
         case "menu": if let c = wire.context, slots[c]?.isMenu == true { menuContext = c; menuSelected = wire.selected ?? ""; selectedSlot = c; selectedDevice = slots[c]!.device; tick(); if presentation { emit("present") } else { showWindow() } }
         case "menuClosed": if wire.context == menuContext { menuContext = ""; menuSelected = "" }
         case "result": notice = String((wire.message ?? "").prefix(300))
+        case "rebinding":
+            receiveRebinding(wire)
+        case "recovery":
+            receiveRecovery(wire)
         default: break
         }
         tick()
@@ -68,6 +63,8 @@ import AppKit
         let entries = catalog.entries.filter { selected?.isStop == true ? $0.action?.cancellable == true : selected?.isStatus == true ? $0.channel?.kind == .state : $0.action != nil }.sorted { ($0.action?.title ?? $0.channel?.title ?? "") < ($1.action?.title ?? $1.channel?.title ?? "") }
         let choices = entries.prefix(80).map { ["key": $0.address.key, "title": $0.action?.title ?? $0.channel?.title ?? "", "kind": $0.action?.effect.rawValue ?? "status"] }
         var state: [String: PluginValue] = ["schema_revision": .number(Double(schemaRevision)), "online": .boolean(peer != nil), "devices": .string(json(Array(devices.values).sorted { $0.name < $1.name })), "slots": .string(json(Array(keySlots))), "device": .string(selectedDevice), "selected": .string(json(selected)), "choices": .string(json(choices)), "choice_total": .number(Double(entries.count)), "notice": .string(notice), "activity": .string(lastResult), "menu": .string(menuContext), "menu_selected": .string(menuSelected), "menu_choices": .string(json(DeckMapping.menuEntries(catalog.entries).prefix(80).map { ["key": $0.address.key, "title": $0.action!.title] }))]
+        state["recovery_notice"] = .string(String((recovery?.message ?? "Read recovery and pending outcomes").prefix(300)))
+        state["recovery_attention"] = .boolean(recovery?.phase == .rejected || recovery?.records.contains(where: { $0.unresolved }) == true)
         // The selected schema is obtained separately so large catalogs do not crowd the view budget.
         if let entry = selectedSchema ?? entries.first(where: { $0.address == selected?.address }) { state["schema"] = .string(json(entry)) }
         for key in ["menu_choices", "choices", "slots", "devices"] {
@@ -82,7 +79,7 @@ import AppKit
             .init("select", input: .init([.init("context", .string)])), .init("device", input: .init([.init("id", .string)])),
             .init("save", input: .init([.init("context", .string), .init("revision", .string), .init("settings", .string)])),
             .init("test", input: .init([.init("context", .string), .init("revision", .string)])),
-            .init("schema", input: .init([.init("address", .string)])), .init("settings"), .init("open"), .init("refresh"),
+            .init("schema", input: .init([.init("address", .string)])), .init("settings"), .init("open"), .init("refresh"), .init("reconnect"), .init("recovery"),
             .init("menu_run", input: .init([.init("address", .string)])), .init("menu_close")
         ])
     }
@@ -107,6 +104,8 @@ import AppKit
             let wire = DeckWire(deckEvent: "command", context: slot.context, command: event.name, revision: slot.revision, settings: settings, request: UUID())
             peer?.send(wire.encoded()!); notice = event.name == "save" ? "Waiting for Elgato to confirm the mapping…" : "Starting saved assignment…"
         case "open": showWindow()
+        case "reconnect": showRebindingWindow()
+        case "recovery": showRecoveryWindow()
         case "settings": showHelp = true; showWindow()
         case "menu_close":
             if let slot = slots[menuContext] { peer?.send(DeckWire(deckEvent: "command", context: slot.context, command: "menu_close", revision: slot.revision, request: UUID()).encoded()!) }
@@ -129,6 +128,10 @@ struct DeckWindow: View {
                 Text("Elgato keeps your devices and profiles. Add Run Action, Show Status or Action Menu from NeroNook to an empty key or supported dial in Elgato. Then select that key here to edit its Nero mapping.")
                 Button("Open Elgato") { NSWorkspace.shared.openApplication(at: URL(fileURLWithPath: "/Applications/Elgato Stream Deck.app"), configuration: .init()) }
                 Text(model.connection).pluginSecondaryText()
+                Button("Reconnect saved keys…") { model.showRebindingWindow() }
+                Button("Recovery & pending outcomes…") { model.showRecoveryWindow() }
+                Text("Read durable settings and execution evidence after a restart. An old run cannot be resumed or cleared here.").pluginSecondaryText()
+                Text("Review visible Nero Run and Stop keys before choosing a replacement action. Saving never runs the action or transfers its permissions.").pluginSecondaryText()
                 }
                 PluginSettingsSection("Permissions") {
                     Text("Allow individual actions in NeroNook Settings → Modules. Changes still require review in NeroNook. Saving a mapping does not run it.").font(.callout).pluginSecondaryText()

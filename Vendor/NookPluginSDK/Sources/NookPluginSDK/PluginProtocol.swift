@@ -199,11 +199,14 @@ public struct PluginMessage: Codable, Sendable {
     public var viewResourceCancel: UUID?
     public var appearance: PluginAppearanceDelivery?
     public var caption: PluginTransientCaption?
-    public init(type: String, pluginID: String, session: UUID, sequence: UInt64 = 0, action: String? = nil, snapshot: PluginSnapshot? = nil, features: [String]? = nil, visible: Bool? = nil, presented: Bool? = nil, mediaVisible: Bool? = nil, frame: PluginFrame? = nil, bus: PluginBusMessage? = nil, agenda: PluginAgenda? = nil, agendaDate: Date? = nil, viewEvent: PluginViewEvent? = nil, volumeCommand: PluginVolumeCommand? = nil, volumeResult: PluginVolumeResult? = nil, viewResource: PluginViewResourceRequest? = nil, viewResourceResult: PluginViewResourceResult? = nil, viewResourceCancel: UUID? = nil, caption: PluginTransientCaption? = nil, appearance: PluginAppearanceDelivery? = nil) {
-        self.type = type; self.pluginID = pluginID; self.session = session; self.sequence = sequence; self.action = action; self.snapshot = snapshot; self.features = features; self.visible = visible; self.presented = presented; self.mediaVisible = mediaVisible; self.frame = frame; self.bus = bus; self.agenda = agenda; self.agendaDate = agendaDate; self.viewEvent = viewEvent; self.volumeCommand = volumeCommand; self.volumeResult = volumeResult; self.viewResource = viewResource; self.viewResourceResult = viewResourceResult; self.viewResourceCancel = viewResourceCancel; self.caption = caption; self.appearance = appearance
+    /// Optional flow-remote-offer-v1; transport only, never execution authority.
+    public var flowOffer: PluginFlowOffer?
+    public init(type: String, pluginID: String, session: UUID, sequence: UInt64 = 0, action: String? = nil, snapshot: PluginSnapshot? = nil, features: [String]? = nil, visible: Bool? = nil, presented: Bool? = nil, mediaVisible: Bool? = nil, frame: PluginFrame? = nil, bus: PluginBusMessage? = nil, agenda: PluginAgenda? = nil, agendaDate: Date? = nil, viewEvent: PluginViewEvent? = nil, volumeCommand: PluginVolumeCommand? = nil, volumeResult: PluginVolumeResult? = nil, viewResource: PluginViewResourceRequest? = nil, viewResourceResult: PluginViewResourceResult? = nil, viewResourceCancel: UUID? = nil, caption: PluginTransientCaption? = nil, appearance: PluginAppearanceDelivery? = nil, flowOffer: PluginFlowOffer? = nil) {
+        self.type = type; self.pluginID = pluginID; self.session = session; self.sequence = sequence; self.action = action; self.snapshot = snapshot; self.features = features; self.visible = visible; self.presented = presented; self.mediaVisible = mediaVisible; self.frame = frame; self.bus = bus; self.agenda = agenda; self.agendaDate = agendaDate; self.viewEvent = viewEvent; self.volumeCommand = volumeCommand; self.volumeResult = volumeResult; self.viewResource = viewResource; self.viewResourceResult = viewResourceResult; self.viewResourceCancel = viewResourceCancel; self.caption = caption; self.appearance = appearance; self.flowOffer = flowOffer
     }
     public func encoded() throws -> Data {
-        var data = try JSONEncoder().encode(self)
+        guard type == "flowOffer" || flowOffer == nil else { throw ModuleProblem("Flow offer requires its own message type.") }
+        var data = type == "flowOffer" ? try PluginFlowOfferCodec.encode(self) : try JSONEncoder().encode(self)
         guard data.count <= PluginLines.maximumBytes else { throw ModuleProblem("Plugin message exceeds its limit.") }
         data.append(10); return data
     }
@@ -221,6 +224,7 @@ public struct PluginLines: Sendable {
             let line = buffer[..<end]
             guard !line.isEmpty, line.count <= Self.maximumBytes else { throw ModuleProblem("Invalid plugin message size.") }
             let message = try JSONDecoder().decode(PluginMessage.self, from: line)
+            try PluginFlowOfferCodec.validateLineIfPresent(Data(line), message: message)
             guard message.apiVersion == 1 else { throw ModuleProblem("Incompatible plugin interface.") }
             messages.append(message)
             buffer.removeSubrange(...end)

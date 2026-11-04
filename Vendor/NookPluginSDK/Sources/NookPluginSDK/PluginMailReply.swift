@@ -14,6 +14,19 @@ public enum PluginMailReplyContract {
     }
 }
 
+/// Optional batch selection. References belong to the provider/account/selection,
+/// not the workflow; no message body, credentials or file path is in this list.
+public enum PluginMailReplyBatchContract {
+    public static let items: PluginStructuredSchema = .array(.object(["reference": .string, "subject": .string]), maximum: 5)
+    public static let list = PluginRegisteredAction("list_reply_selection", title: "Read selected reply items",
+        input: .init([.init("selection_id", .string, required: false), .init("count", .number, required: false, minimum: 1, maximum: 5)]),
+        output: .init([.init("selection_id", .string), .init("count", .number, minimum: 1, maximum: 5), .init("items", .string, structured: items)]),
+        effect: .readOnly, timeoutSeconds: 5)
+    public static let read = PluginRegisteredAction("read_reply_item", title: "Read one selected reply item",
+        input: .init([.init("reference", .string)]), output: PluginMailReplyContract.read.output,
+        effect: .readOnly, timeoutSeconds: 30)
+}
+
 /// Generic task handoff used by independent agent systems. Preparing never sends;
 /// the provider owns target review, execution, cancellation and original receipts.
 public enum PluginAgentTaskContract {
